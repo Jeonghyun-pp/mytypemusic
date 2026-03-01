@@ -8,8 +8,8 @@ export function usePlanStore() {
 
   useEffect(() => {
     fetch("/api/db/plans")
-      .then((r) => r.json())
-      .then((data) => setPlans(data as ContentPlanGeneration[]))
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data) => setPlans(Array.isArray(data) ? data : []))
       .catch(() => {});
   }, []);
 

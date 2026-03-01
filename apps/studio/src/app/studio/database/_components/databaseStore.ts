@@ -17,8 +17,8 @@ export function useDesignDatabase() {
 
   useEffect(() => {
     fetch("/api/db/designs")
-      .then((r) => r.json())
-      .then((data) => setEntries(data as DesignEntry[]))
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data) => setEntries(Array.isArray(data) ? data : []))
       .catch(() => {});
   }, []);
 

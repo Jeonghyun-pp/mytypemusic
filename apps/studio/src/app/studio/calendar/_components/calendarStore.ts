@@ -21,8 +21,8 @@ export function useCalendarEvents() {
 
   useEffect(() => {
     fetch("/api/db/events")
-      .then((r) => r.json())
-      .then((data) => setEvents(data as CalendarEvent[]))
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data) => setEvents(Array.isArray(data) ? data : []))
       .catch(() => {});
   }, []);
 
