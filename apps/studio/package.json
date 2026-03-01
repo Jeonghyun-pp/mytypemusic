@@ -3,6 +3,9 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "dev": "next dev --port 3100",
+    "build": "prisma generate && next build",
+    "start": "next start",
     "bundle:remotion": "npx remotion bundle src/remotion/index.ts --out-dir=remotion-bundle"
   }
 }
