@@ -1,0 +1,156 @@
+{
+  "topicId": "데이식스-새-앨범-20260217-d0e91e",
+  "normalizedTopic": "데이식스 새 앨범",
+  "category": "music",
+  "angleCandidates": [
+    "데이식스 새 앨범 한 장 요약",
+    "핵심만 3줄: 지금 무슨 일이야?",
+    "초보자용 배경 설명: 왜 중요한가",
+    "일정/라인업/공연 포인트만 정리",
+    "팬들이 주목하는 포인트 5가지",
+    "관련 키워드/반응으로 보는 흐름",
+    "지금 왜 뜨나: 최근 24시간 기사 7개 / 매체 4곳",
+    "한눈에 보는 커버리지: 최근 24시간 기사 7개 / 매체 4곳"
+  ],
+  "sources": [
+    {
+      "title": "블랙핑크·아이브 등 슈퍼 걸그룹, 2월 가요계 대거 컴백",
+      "publisher": "동아일보",
+      "url": "https://www.donga.com/news/Culture/article/all/20260213/133362674/1",
+      "publishedAt": "2026-02-16T21:00:00.000Z"
+    },
+    {
+      "title": "박군, 프로농구 코트 뜬다…신곡 ‘땡잡았다’ 선공개",
+      "publisher": "동아일보",
+      "url": "https://sports.donga.com/ent/article/all/20260217/133371240/1",
+      "publishedAt": "2026-02-17T05:02:08.000Z"
+    },
+    {
+      "title": "트와이스 미사모, 日 정규 1집 ‘오리콘·빌보드 재팬’ 주간차트 정상",
+      "publisher": "동아일보",
+      "url": "https://www.donga.com/news/Culture/article/all/20260214/133368176/1",
+      "publishedAt": "2026-02-14T12:30:40.000Z"
+    },
+    {
+      "title": "BTS 첫 완전체 화보 나왔다…\"우리는 팀, 그것이 우리의 정체성\"",
+      "publisher": "so5what@sbs.co.kr(심영구)",
+      "url": "https://news.sbs.co.kr/news/endPage.do?news_id=N1008444332",
+      "publishedAt": "2026-02-14T01:06:00.000Z"
+    },
+    {
+      "title": "테니스 스타 고프의 소신발언…\"미국, 다양성 가치 되찾아야\"",
+      "publisher": "ghp@sbs.co.kr(편광현)",
+      "url": "https://news.sbs.co.kr/news/endPage.do?news_id=N1008445983",
+      "publishedAt": "2026-02-17T04:36:00.000Z"
+    },
+    {
+      "title": "‘컴백 D-6’ 아이브, 정규 2집 하이라이트 메들리 공개…전 멤버 솔로곡 수록",
+      "publisher": "동아일보",
+      "url": "https://sports.donga.com/ent/article/all/20260217/133371053/1",
+      "publishedAt": "2026-02-17T02:04:25.000Z"
+    },
+    {
+      "title": "송가인, 설 안방 울렸다…‘국보급 보이스’로 ‘가요무대’ 대미 장식",
+      "publisher": "동아일보",
+      "url": "https://sports.donga.com/ent/article/all/20260217/133370994/1",
+      "publishedAt": "2026-02-17T01:17:02.000Z"
+    },
+    {
+      "title": "몬엑→아이브 2026 설맞이 인사…“열정적으로 도전하고 원하는 바 이루시길”",
+      "publisher": "동아일보",
+      "url": "https://sports.donga.com/ent/article/all/20260217/133370841/1",
+      "publishedAt": "2026-02-16T23:11:31.000Z"
+    },
+    {
+      "title": "임영웅 30만표 클래스…영웅시대 화력 폭발",
+      "publisher": "동아일보",
+      "url": "https://sports.donga.com/ent/article/all/20260217/133370833/1",
+      "publishedAt": "2026-02-16T23:11:10.000Z"
+    },
+    {
+      "title": "“이 곡 왜 1위죠?”···‘서사’가 밀어 올리는 요즘 차트",
+      "publisher": "신주영 기자",
+      "url": "https://www.khan.co.kr/article/202602101656001/?utm_source=khan_rss&utm_medium=rss&utm_campaign=culture_news"
+    }
+  ],
+  "keyFacts": [
+    {
+      "text": "블랙핑크아이브 등 슈퍼 걸그룹, 2월 가요계 대거 컴백",
+      "evidenceUrls": [
+        "https://www.donga.com/news/Culture/article/all/20260213/133362674/1"
+      ]
+    },
+    {
+      "text": "박군, 프로농구 코트 뜬다신곡 ‘땡잡았다’ 선공개",
+      "evidenceUrls": [
+        "https://sports.donga.com/ent/article/all/20260217/133371240/1"
+      ]
+    },
+    {
+      "text": "트와이스 미사모, 日 정규 1집 ‘오리콘빌보드 재팬’ 주간차트 정상",
+      "evidenceUrls": [
+        "https://www.donga.com/news/Culture/article/all/20260214/133368176/1",
+        "https://sports.donga.com/ent/article/all/20260217/133371053/1"
+      ]
+    },
+    {
+      "text": "BTS 첫 완전체 화보 나왔다\"우리는 팀, 그것이 우리의 정체성\"",
+      "evidenceUrls": [
+        "https://news.sbs.co.kr/news/endPage.do?news_id=N1008444332"
+      ]
+    },
+    {
+      "text": "테니스 스타 고프의 소신발언\"미국, 다양성 가치 되찾아야\"",
+      "evidenceUrls": [
+        "https://news.sbs.co.kr/news/endPage.do?news_id=N1008445983"
+      ]
+    },
+    {
+      "text": "‘컴백 D-6’ 아이브, 정규 2집 하이라이트 메들리 공개전 멤버 솔로곡 수록",
+      "evidenceUrls": [
+        "https://sports.donga.com/ent/article/all/20260217/133371053/1",
+        "https://www.donga.com/news/Culture/article/all/20260214/133368176/1"
+      ]
+    },
+    {
+      "text": "송가인, 설 안방 울렸다‘국보급 보이스’로 ‘가요무대’ 대미 장식",
+      "evidenceUrls": [
+        "https://sports.donga.com/ent/article/all/20260217/133370994/1"
+      ]
+    },
+    {
+      "text": "몬엑아이브 2026 설맞이 인사“열정적으로 도전하고 원하는 바 이루시길”",
+      "evidenceUrls": [
+        "https://sports.donga.com/ent/article/all/20260217/133370841/1"
+      ]
+    },
+    {
+      "text": "임영웅 30만표 클래스영웅시대 화력 폭발",
+      "evidenceUrls": [
+        "https://sports.donga.com/ent/article/all/20260217/133370833/1"
+      ]
+    },
+    {
+      "text": "“이 곡 왜 1위죠?”‘서사’가 밀어 올리는 요즘 차트",
+      "evidenceUrls": [
+        "https://www.khan.co.kr/article/202602101656001/?utm_source=khan_rss&utm_medium=rss&utm_campaign=culture_news"
+      ]
+    }
+  ],
+  "imageQueries": [
+    "데이식스 새 앨범 concept illustration",
+    "데이식스 새 앨범 generic background photo",
+    "데이식스 새 앨범 live concert photo",
+    "데이식스 새 앨범 stage performance",
+    "데이식스 새 앨범 tour announcement",
+    "데이식스 새 앨범 band promo photo",
+    "데이식스 새 앨범 abstract design",
+    "데이식스 새 앨범 minimalist graphic"
+  ],
+  "riskNotes": [
+    "Coverage: sources=10, publishers=4, 24h=7, score=84/100",
+    "초상권/공식 이미지 사용 주의. 스톡/CC 우선.",
+    "Some sources missing publishedAt; recency filtering may be approximate."
+  ],
+  "createdAt": "2026-02-17T09:52:56.007Z"
+}

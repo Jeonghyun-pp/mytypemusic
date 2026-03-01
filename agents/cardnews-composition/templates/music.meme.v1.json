@@ -1,0 +1,51 @@
+{
+  "templateId": "music.meme.v1",
+  "family": "music.meme",
+  "safeArea": {
+    "top": 80,
+    "right": 60,
+    "bottom": 120,
+    "left": 60
+  },
+  "slots": [
+    {
+      "id": "artistImage",
+      "type": "image",
+      "x": 0,
+      "y": 0,
+      "width": 1080,
+      "height": 1350,
+      "fit": "cover"
+    },
+    {
+      "id": "memeText",
+      "type": "text",
+      "x": 60,
+      "y": 400,
+      "width": 960,
+      "height": 500,
+      "style": {
+        "fontSize": 56,
+        "fontWeight": "bold",
+        "color": "#FFFFFF",
+        "textShadow": "0 4px 16px rgba(0,0,0,0.8)",
+        "textAlign": "center"
+      },
+      "constraints": { "maxLines": 6, "maxChars": 120 }
+    },
+    {
+      "id": "footerCredits",
+      "type": "text",
+      "x": 60,
+      "y": 1270,
+      "width": 960,
+      "height": 40,
+      "style": {
+        "fontSize": 14,
+        "color": "rgba(255,255,255,0.7)"
+      },
+      "constraints": { "maxLines": 1, "maxChars": 90 },
+      "attributionRequired": true
+    }
+  ]
+}

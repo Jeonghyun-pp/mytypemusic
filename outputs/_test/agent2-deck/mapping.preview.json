@@ -1,0 +1,17 @@
+{
+  "heroImage": {
+    "kind": "image",
+    "assetId": "fixture-ok-001",
+    "localPath": "C:\\Users\\pjhic\\Projects\\Web_magazine\\agents\\cardnews-composition\\fixtures\\dummy.jpg",
+    "sourceUrl": "https://unsplash.com/photos/fixture-ok",
+    "role": "hero_unedited"
+  },
+  "title": {
+    "kind": "text",
+    "text": "This Is an Extremely Long Title That Should Definitely Be Truncated Because It Exceeds Any Reasonable Limit for a Cover Slide"
+  },
+  "footerCredits": {
+    "kind": "text",
+    "text": "Photo by Fixture on Unsplash"
+  }
+}

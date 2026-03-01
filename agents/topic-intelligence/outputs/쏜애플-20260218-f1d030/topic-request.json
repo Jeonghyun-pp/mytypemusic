@@ -1,0 +1,15 @@
+{
+  "mode": "manual",
+  "seedKeyword": "쏜애플",
+  "category": "music",
+  "depth": "explainer",
+  "region": "KR",
+  "maxArticles": 10,
+  "recencyDays": 7,
+  "topicType": "evergreen",
+  "searchEntities": [
+    "쏜애플"
+  ],
+  "topicId": "쏜애플-20260218-f1d030",
+  "createdAt": "2026-02-18T08:41:02.691Z"
+}

@@ -1,0 +1,127 @@
+{
+  "generatedAt": "2026-02-15T03:34:48.411Z",
+  "timeframe": "now 7-d",
+  "total": 10,
+  "candidates": [
+    {
+      "keyword": "정시아",
+      "category": "unknown",
+      "score": 54,
+      "reasons": [
+        "base:20",
+        "traffic:+24",
+        "daily:+10"
+      ],
+      "source": "dailyTrends",
+      "traffic": 1000
+    },
+    {
+      "keyword": "설날",
+      "category": "unknown",
+      "score": 48,
+      "reasons": [
+        "base:20",
+        "traffic:+18",
+        "daily:+10"
+      ],
+      "source": "dailyTrends",
+      "traffic": 200
+    },
+    {
+      "keyword": "inter vs juventus",
+      "category": "unknown",
+      "score": 48,
+      "reasons": [
+        "base:20",
+        "traffic:+18",
+        "daily:+10"
+      ],
+      "source": "dailyTrends",
+      "traffic": 200
+    },
+    {
+      "keyword": "동계올림픽 메달 순위",
+      "category": "unknown",
+      "score": 48,
+      "reasons": [
+        "base:20",
+        "traffic:+18",
+        "daily:+10"
+      ],
+      "source": "dailyTrends",
+      "traffic": 200
+    },
+    {
+      "keyword": "real madrid đấu với real sociedad",
+      "category": "unknown",
+      "score": 48,
+      "reasons": [
+        "base:20",
+        "traffic:+18",
+        "daily:+10"
+      ],
+      "source": "dailyTrends",
+      "traffic": 200
+    },
+    {
+      "keyword": "seedance",
+      "category": "unknown",
+      "score": 46,
+      "reasons": [
+        "base:20",
+        "traffic:+16",
+        "daily:+10"
+      ],
+      "source": "dailyTrends",
+      "traffic": 100
+    },
+    {
+      "keyword": "아이유",
+      "category": "unknown",
+      "score": 46,
+      "reasons": [
+        "base:20",
+        "traffic:+16",
+        "daily:+10"
+      ],
+      "source": "dailyTrends",
+      "traffic": 100
+    },
+    {
+      "keyword": "단지누",
+      "category": "unknown",
+      "score": 46,
+      "reasons": [
+        "base:20",
+        "traffic:+16",
+        "daily:+10"
+      ],
+      "source": "dailyTrends",
+      "traffic": 100
+    },
+    {
+      "keyword": "зимние олимпийские игры 2026 года – горн",
+      "category": "unknown",
+      "score": 46,
+      "reasons": [
+        "base:20",
+        "traffic:+16",
+        "daily:+10"
+      ],
+      "source": "dailyTrends",
+      "traffic": 100
+    },
+    {
+      "keyword": "реал мадрид – реал сосьедад",
+      "category": "unknown",
+      "score": 46,
+      "reasons": [
+        "base:20",
+        "traffic:+16",
+        "daily:+10"
+      ],
+      "source": "dailyTrends",
+      "traffic": 100
+    }
+  ]
+}

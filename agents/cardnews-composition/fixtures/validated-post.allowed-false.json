@@ -1,0 +1,13 @@
+{
+  "allowed": false,
+  "attributionRequired": false,
+  "notes": ["blocked for test"],
+  "images": [
+    {
+      "assetId": "blocked-asset-001",
+      "localPath": "dummy.jpg",
+      "sourceUrl": "https://example.com/blocked",
+      "role": "hero_unedited"
+    }
+  ]
+}

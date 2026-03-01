@@ -1,0 +1,196 @@
+"use client";
+
+import { useState } from "react";
+import type { SlideSpec, SlideStyleOverrides, DesignSpec, AiDesignAction } from "@/lib/studio/designEditor/types";
+import type { Layer, LayerKind } from "@/lib/studio/designEditor/layerTypes";
+import StyleControlsTab from "./StyleControlsTab";
+import AiDesignChat from "./AiDesignChat";
+import ReferenceImagesTab from "./ReferenceImagesTab";
+import CodeEditorTab from "./CodeEditorTab";
+import LayerPanel from "./LayerPanel";
+
+type Tab = "style" | "ai" | "ref" | "code" | "layers";
+
+interface ControlPanelProps {
+  slide: SlideSpec;
+  spec: DesignSpec;
+  onSlideChange: (patch: Partial<SlideSpec>) => void;
+  onStyleChange: (patch: Partial<SlideStyleOverrides>) => void;
+  onApplyActions: (actions: AiDesignAction[]) => void;
+  onApplyGlobalStyle: (style: SlideStyleOverrides) => void;
+  onCustomHtmlChange: (html: string) => void;
+  onClearCustomHtml: () => void;
+  onPresetChange: (presetId: string) => void;
+  onFontMoodChange: (mood: string) => void;
+  // Layer mode
+  selectedLayerId: string | null;
+  onSelectLayer: (id: string | null) => void;
+  onUpdateLayer: (id: string, patch: Partial<Layer>) => void;
+  onAddLayer: (kind: LayerKind) => void;
+  onRemoveLayer: (id: string) => void;
+  onReorderLayer: (id: string, direction: "up" | "down") => void;
+}
+
+const s = {
+  panel: {
+    width: "380px",
+    flexShrink: 0,
+    display: "flex",
+    flexDirection: "column" as const,
+    borderRight: "1px solid var(--border-light)",
+    background: "var(--bg-card)",
+    overflow: "hidden",
+  } as const,
+  tabBar: {
+    display: "flex",
+    borderBottom: "1px solid var(--border-light)",
+    flexShrink: 0,
+    padding: "0 8px",
+    gap: "2px",
+  } as const,
+  tab: {
+    flex: 1,
+    padding: "11px 0",
+    background: "none",
+    borderTop: "none",
+    borderRight: "none",
+    borderLeft: "none",
+    borderBottom: "2px solid transparent",
+    cursor: "pointer",
+    fontSize: "13px",
+    color: "var(--text-muted)",
+    fontWeight: 400,
+    transition: "all var(--transition)",
+  } as const,
+  tabActive: {
+    color: "var(--accent)",
+    borderBottom: "2px solid var(--accent)",
+    fontWeight: 600,
+  } as const,
+  body: {
+    flex: 1,
+    padding: "16px",
+    display: "flex",
+    flexDirection: "column" as const,
+    overflow: "hidden",
+    minHeight: 0,
+  } as const,
+  bodyNoPad: {
+    flex: 1,
+    padding: 0,
+    display: "flex",
+    flexDirection: "column" as const,
+    overflow: "hidden",
+    minHeight: 0,
+  } as const,
+};
+
+export default function ControlPanel({
+  slide,
+  spec,
+  onSlideChange,
+  onStyleChange,
+  onApplyActions,
+  onApplyGlobalStyle,
+  onCustomHtmlChange,
+  onClearCustomHtml,
+  onPresetChange,
+  onFontMoodChange,
+  selectedLayerId,
+  onSelectLayer,
+  onUpdateLayer,
+  onAddLayer,
+  onRemoveLayer,
+  onReorderLayer,
+}: ControlPanelProps) {
+  const [tab, setTab] = useState<Tab>("style");
+
+  return (
+    <div style={s.panel}>
+      <div style={s.tabBar}>
+        <button
+          type="button"
+          style={{ ...s.tab, ...(tab === "style" ? s.tabActive : {}) }}
+          onClick={() => setTab("style")}
+        >
+          스타일
+        </button>
+        <button
+          type="button"
+          style={{ ...s.tab, ...(tab === "code" ? s.tabActive : {}) }}
+          onClick={() => setTab("code")}
+        >
+          코드
+        </button>
+        <button
+          type="button"
+          style={{ ...s.tab, ...(tab === "ai" ? s.tabActive : {}) }}
+          onClick={() => setTab("ai")}
+        >
+          AI
+        </button>
+        <button
+          type="button"
+          style={{ ...s.tab, ...(tab === "layers" ? s.tabActive : {}) }}
+          onClick={() => setTab("layers")}
+        >
+          레이어
+        </button>
+        <button
+          type="button"
+          style={{ ...s.tab, ...(tab === "ref" ? s.tabActive : {}) }}
+          onClick={() => setTab("ref")}
+        >
+          참고 이미지
+        </button>
+      </div>
+
+      <div style={tab === "code" ? s.bodyNoPad : s.body}>
+        {tab === "style" && (
+          <StyleControlsTab
+            slide={slide}
+            presetId={spec.presetId}
+            fontMood={spec.fontMood}
+            globalStyle={spec.globalStyle}
+            onChange={onSlideChange}
+            onStyleChange={onStyleChange}
+            onPresetChange={onPresetChange}
+            onFontMoodChange={onFontMoodChange}
+            onClearCustomHtml={onClearCustomHtml}
+            onApplyGlobalStyle={onApplyGlobalStyle}
+          />
+        )}
+        {tab === "code" && (
+          <CodeEditorTab
+            slide={slide}
+            globalStyle={spec.globalStyle}
+            onCustomHtmlChange={onCustomHtmlChange}
+            onClearCustomHtml={onClearCustomHtml}
+          />
+        )}
+        {tab === "ai" && (
+          <AiDesignChat spec={spec} onApplyActions={onApplyActions} />
+        )}
+        {tab === "layers" && (
+          <LayerPanel
+            layers={slide.layers ?? []}
+            selectedLayerId={selectedLayerId}
+            onSelectLayer={onSelectLayer}
+            onUpdateLayer={onUpdateLayer}
+            onAddLayer={onAddLayer}
+            onRemoveLayer={onRemoveLayer}
+            onReorderLayer={onReorderLayer}
+          />
+        )}
+        {tab === "ref" && (
+          <ReferenceImagesTab
+            onApplyGlobalStyle={onApplyGlobalStyle}
+            onCustomHtmlChange={onCustomHtmlChange}
+            onSwitchToCodeTab={() => setTab("code")}
+            onSlideChange={onSlideChange}
+          />
+        )}
+      </div>
+    </div>
+  );
+}

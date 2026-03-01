@@ -1,0 +1,16 @@
+{
+  "mode": "manual",
+  "seedKeyword": "인디밴드 봄 3대장",
+  "category": "music",
+  "depth": "explainer",
+  "region": "KR",
+  "maxArticles": 10,
+  "recencyDays": 7,
+  "searchEntities": [
+    "쏜애플",
+    "한로로",
+    "새소년"
+  ],
+  "topicId": "인디밴드-봄-3대장-20260218-f2157d",
+  "createdAt": "2026-02-18T05:46:20.762Z"
+}

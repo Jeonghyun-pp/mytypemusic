@@ -1,0 +1,41 @@
+{
+  "geo": "KR",
+  "dateYyyymmdd": "20260215",
+  "dryRun": false,
+  "concurrency": 1,
+  "pickedPath": "C:\\Users\\pjhic\\Projects\\Web_magazine\\agents\\topic-intelligence\\outputs\\seeds\\20260215\\picked.KR.json",
+  "overrides": {},
+  "timing": {
+    "startedAt": "2026-02-15T03:35:40.585Z",
+    "finishedAt": "2026-02-15T03:35:41.050Z",
+    "totalMs": 465
+  },
+  "totals": {
+    "total": 1,
+    "willRun": 1,
+    "ok": 1,
+    "failed": 0,
+    "skipped": 0
+  },
+  "items": [
+    {
+      "idx": 0,
+      "keyword": "아이유",
+      "category": "music",
+      "ok": true,
+      "skipped": false,
+      "topicId": "아이유-20260215-f77374",
+      "paths": {
+        "topicRequestPath": "C:\\Users\\pjhic\\Projects\\Web_magazine\\agents\\topic-intelligence\\outputs\\아이유-20260215-f77374\\topic-request.json",
+        "topicIntelPath": "C:\\Users\\pjhic\\Projects\\Web_magazine\\agents\\topic-intelligence\\outputs\\아이유-20260215-f77374\\topic-intel.json",
+        "agent2TopicPath": "C:\\Users\\pjhic\\Projects\\Web_magazine\\agents\\topic-intelligence\\outputs\\아이유-20260215-f77374\\topic.agent2.json"
+      },
+      "summary": {
+        "sources": 10,
+        "keyFacts": 10,
+        "angles": 8
+      },
+      "durationMs": 459
+    }
+  ]
+}

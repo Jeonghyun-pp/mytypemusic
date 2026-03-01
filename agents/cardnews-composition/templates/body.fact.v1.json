@@ -1,0 +1,49 @@
+{
+  "templateId": "body.fact.v1",
+  "family": "body",
+  "safeArea": { "top": 75, "right": 75, "bottom": 100, "left": 75 },
+  "slots": [
+    {
+      "id": "headline",
+      "type": "text",
+      "x": 75,
+      "y": 120,
+      "width": 930,
+      "height": 100,
+      "style": {
+        "fontSize": 36,
+        "fontWeight": "600",
+        "color": "rgba(255,255,255,0.6)"
+      },
+      "constraints": { "maxLines": 1, "maxChars": 30 }
+    },
+    {
+      "id": "body",
+      "type": "text",
+      "x": 75,
+      "y": 380,
+      "width": 930,
+      "height": 500,
+      "style": {
+        "fontSize": 48,
+        "fontWeight": "700",
+        "color": "#FFFFFF"
+      },
+      "constraints": { "maxLines": 6, "maxChars": 120 }
+    },
+    {
+      "id": "footerCredits",
+      "type": "text",
+      "x": 75,
+      "y": 1250,
+      "width": 930,
+      "height": 40,
+      "style": {
+        "fontSize": 14,
+        "color": "rgba(255,255,255,0.7)"
+      },
+      "constraints": { "maxLines": 1, "maxChars": 90 },
+      "attributionRequired": true
+    }
+  ]
+}

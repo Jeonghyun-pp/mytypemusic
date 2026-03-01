@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<style>
+:root {
+  --headline-size: 36px;
+  --body-size: 48px;
+  --footer-size: 22px;
+  --footer-bottom: 40px;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body {
+  width: 1080px;
+  height: 1350px;
+  overflow: hidden;
+}
+.canvas {
+  position: relative;
+  width: 1080px;
+  height: 1350px;
+  background: linear-gradient(160deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+  font-family: "Pretendard", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+  color: #fff;
+}
+.slot-headline {
+  position: absolute;
+  left: 60px;
+  top: 120px;
+  width: 960px;
+  height: 100px;
+  font-size: var(--headline-size);
+  font-weight: 600;
+  color: rgba(255,255,255,0.55);
+  letter-spacing: 2px;
+  line-height: 100px;
+  overflow: hidden;
+}
+.divider {
+  position: absolute;
+  left: 60px;
+  top: 240px;
+  width: 80px;
+  height: 4px;
+  background: rgba(255,255,255,0.25);
+  border-radius: 2px;
+}
+.slot-body {
+  position: absolute;
+  left: 60px;
+  top: 380px;
+  width: 960px;
+  height: 500px;
+  font-size: var(--body-size);
+  font-weight: 700;
+  line-height: 1.35;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  overflow: hidden;
+}
+.slot-footer {
+  position: absolute;
+  left: 60px;
+  bottom: var(--footer-bottom);
+  width: 960px;
+  height: 40px;
+  font-size: var(--footer-size);
+  color: rgba(255,255,255,0.7);
+  line-height: 40px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+</style>
+</head>
+<body>
+<div id="canvas" class="canvas" data-safe-top="80" data-safe-bottom="120" data-safe-left="60" data-safe-right="60" data-footer-zone-h="220">
+  <div id="box-headline" class="slot-headline" data-bbox-w="960" data-bbox-h="100">핵심 포인트</div>
+  <div class="divider"></div>
+  <div id="box-body" class="slot-body" data-bbox-w="960" data-bbox-h="500">Fourth key fact because we want to hit the maximum of four allowed bullets in the caption output</div>
+  <div id="box-footer" class="slot-footer">Photo by Fixture on Unsplash</div>
+</div>
+</body>
+</html>

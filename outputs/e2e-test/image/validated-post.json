@@ -1,0 +1,72 @@
+{
+  "postUseIntent": "editorial",
+  "channel": "instagram",
+  "images": [
+    {
+      "assetId": "e3eafc6a-eab2-4948-ae85-fec21386846f",
+      "provider": "pressroom",
+      "localPath": "C:\\Users\\pjhic\\Projects\\Web_magazine\\outputs\\e2e-test\\image\\e3eafc6a-eab2-4948-ae85-fec21386846f.jpg",
+      "sourceUrl": "https://smentertainment.com/newsroom",
+      "license": {
+        "provider": "pressroom",
+        "sourceUrl": "https://smentertainment.com/newsroom",
+        "licenseUrl": "https://smentertainment.com/newsroom",
+        "allowedUses": [
+          "commercial",
+          "editorial"
+        ],
+        "allowedChannels": "any",
+        "territory": "worldwide",
+        "derivatives": {
+          "allowed": true,
+          "allowedTransforms": "any"
+        },
+        "attribution": {
+          "required": true,
+          "textTemplate": "Courtesy of smentertainment.com"
+        },
+        "modelRelease": "unknown",
+        "propertyRelease": "unknown",
+        "restrictions": {
+          "editorialOnly": false,
+          "noDerivatives": false,
+          "noCommercial": false
+        },
+        "confidence": "medium"
+      },
+      "proof": {
+        "capturedAt": "2026-02-16T17:16:36.481Z",
+        "sourceHash": "64acde6f9a376b79398535c177dba04ac934d4a4b9ac049f721b5364be33d580",
+        "licenseHash": "75ca8b7b5464c0c1b1a05921d53d236f4f569f4d82b35e551ed4f6fe2521b25c"
+      },
+      "risk": {
+        "flags": {
+          "containsPerson": false,
+          "containsLogo": false,
+          "hasWatermark": false,
+          "celebrityLikelihood": false
+        },
+        "riskScore": 10
+      },
+      "role": "background_editable",
+      "recommendedAttribution": "Courtesy of smentertainment.com"
+    }
+  ],
+  "overallRiskScore": 20,
+  "allowed": true,
+  "requiredActions": [],
+  "attributionRequired": true,
+  "notes": [],
+  "attribution": {
+    "captionAppendix": "Credits: Courtesy of smentertainment.com.",
+    "footerCredits": [],
+    "perImageCredits": [
+      {
+        "assetId": "e3eafc6a-eab2-4948-ae85-fec21386846f",
+        "provider": "pressroom",
+        "role": "background_editable",
+        "text": "Courtesy of smentertainment.com"
+      }
+    ]
+  }
+}

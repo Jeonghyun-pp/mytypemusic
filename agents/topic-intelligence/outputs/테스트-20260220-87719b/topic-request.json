@@ -1,0 +1,14 @@
+{
+  "mode": "manual",
+  "seedKeyword": "테스트",
+  "category": "music",
+  "depth": "explainer",
+  "region": "KR",
+  "maxArticles": 10,
+  "recencyDays": 7,
+  "searchEntities": [
+    "테스트"
+  ],
+  "topicId": "테스트-20260220-87719b",
+  "createdAt": "2026-02-20T01:18:06.238Z"
+}

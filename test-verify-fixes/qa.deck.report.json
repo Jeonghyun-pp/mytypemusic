@@ -1,0 +1,138 @@
+{
+  "createdAt": "2026-02-27T04:48:23.716Z",
+  "slideCount": 6,
+  "summary": {
+    "totalViolations": 0,
+    "slidesWithViolations": 0,
+    "overflowCount": 0
+  },
+  "slides": [
+    {
+      "index": 1,
+      "file": "slide_01.html",
+      "kind": "cover",
+      "attempts": 0,
+      "finalVars": {},
+      "safeAreaAndFooter": {
+        "safeArea": {
+          "top": 75,
+          "bottom": 100,
+          "left": 75,
+          "right": 75
+        },
+        "boxes": {},
+        "violations": []
+      },
+      "overflow": {}
+    },
+    {
+      "index": 2,
+      "file": "slide_02.html",
+      "kind": "fact",
+      "attempts": 0,
+      "finalVars": {
+        "headlineSizePx": 18,
+        "bodySizePx": 36,
+        "footerSizePx": 22
+      },
+      "safeAreaAndFooter": {
+        "safeArea": {
+          "top": 75,
+          "bottom": 100,
+          "left": 75,
+          "right": 75
+        },
+        "boxes": {},
+        "violations": []
+      },
+      "overflow": {}
+    },
+    {
+      "index": 3,
+      "file": "slide_03.html",
+      "kind": "fact",
+      "attempts": 0,
+      "finalVars": {
+        "headlineSizePx": 18,
+        "bodySizePx": 36,
+        "footerSizePx": 22
+      },
+      "safeAreaAndFooter": {
+        "safeArea": {
+          "top": 75,
+          "bottom": 100,
+          "left": 75,
+          "right": 75
+        },
+        "boxes": {},
+        "violations": []
+      },
+      "overflow": {}
+    },
+    {
+      "index": 4,
+      "file": "slide_04.html",
+      "kind": "fact",
+      "attempts": 0,
+      "finalVars": {
+        "headlineSizePx": 18,
+        "bodySizePx": 36,
+        "footerSizePx": 22
+      },
+      "safeAreaAndFooter": {
+        "safeArea": {
+          "top": 75,
+          "bottom": 100,
+          "left": 75,
+          "right": 75
+        },
+        "boxes": {},
+        "violations": []
+      },
+      "overflow": {}
+    },
+    {
+      "index": 5,
+      "file": "slide_05.html",
+      "kind": "fact",
+      "attempts": 0,
+      "finalVars": {
+        "headlineSizePx": 18,
+        "bodySizePx": 36,
+        "footerSizePx": 22
+      },
+      "safeAreaAndFooter": {
+        "safeArea": {
+          "top": 75,
+          "bottom": 100,
+          "left": 75,
+          "right": 75
+        },
+        "boxes": {},
+        "violations": []
+      },
+      "overflow": {}
+    },
+    {
+      "index": 6,
+      "file": "slide_06.html",
+      "kind": "outro",
+      "attempts": 0,
+      "finalVars": {
+        "ctaSizePx": 52,
+        "footerSizePx": 22
+      },
+      "safeAreaAndFooter": {
+        "safeArea": {
+          "top": 75,
+          "bottom": 100,
+          "left": 75,
+          "right": 75
+        },
+        "boxes": {},
+        "violations": []
+      },
+      "overflow": {}
+    }
+  ]
+}

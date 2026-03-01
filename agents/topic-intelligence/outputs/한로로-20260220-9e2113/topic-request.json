@@ -1,0 +1,15 @@
+{
+  "mode": "manual",
+  "seedKeyword": "한로로",
+  "category": "music",
+  "depth": "explainer",
+  "region": "KR",
+  "maxArticles": 10,
+  "recencyDays": 7,
+  "topicType": "evergreen",
+  "searchEntities": [
+    "한로"
+  ],
+  "topicId": "한로로-20260220-9e2113",
+  "createdAt": "2026-02-19T18:13:00.500Z"
+}

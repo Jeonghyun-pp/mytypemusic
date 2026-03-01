@@ -1,0 +1,99 @@
+{
+  "topicId": "쏜애플의-20260218-b3c6e3",
+  "title": "쏜애플의",
+  "subtitle": "매체 2개 기반 정리",
+  "category": "music",
+  "depth": "explainer",
+  "slides": [
+    {
+      "kind": "cover",
+      "headline": "쏜애플의",
+      "note": "매체 2개 기반 정리"
+    },
+    {
+      "kind": "fact",
+      "headline": "서울병은 2016년 5월 19일에 발매된 쏜애플의 EP 앨범이다.",
+      "bullets": [
+        "서울병은 2016년 5월",
+        "19일에 발매된 쏜애플의",
+        "EP 앨범이다."
+      ],
+      "evidenceUrls": [
+        "https://ko.wikipedia.org/wiki/%EC%84%9C%EC%9A%B8%EB%B3%91"
+      ]
+    },
+    {
+      "kind": "fact",
+      "headline": "쏜애플(Thornapple)은 대한민국의 3인조 록 밴드이며 주 장르는…",
+      "bullets": [
+        "쏜애플(Thornapple)은 대한민국의 3인조",
+        "밴드이며 장르는 사이키델릭",
+        "록이다."
+      ],
+      "evidenceUrls": [
+        "https://ko.wikipedia.org/wiki/%EC%8F%9C%EC%95%A0%ED%94%8C"
+      ]
+    },
+    {
+      "kind": "fact",
+      "headline": "2009년에 밴드 '가시사과'라는 이름으로 데뷔하였고, 결성 초반에는 …",
+      "bullets": [
+        "2009년에 밴드 '가시사과'라는 이름으로 데뷔하였고",
+        "결성 초반에는 홍대 부근에서 공연 위주의 활동으로 이름을 알리기 시작하였다"
+      ],
+      "evidenceUrls": [
+        "https://ko.wikipedia.org/wiki/%EC%8F%9C%EC%95%A0%ED%94%8C"
+      ]
+    },
+    {
+      "kind": "summary",
+      "headline": "핵심만 정리",
+      "bullets": [
+        "서울병은 2016년 5월 19일에 발매된 쏜애플의 EP 앨범이다.",
+        "쏜애플(Thornapple)은 대한민국의 3인조 록 밴드이며 주 장르는 사이키델릭 록이다.",
+        "2009년에 밴드 '가시사과'라는 이름으로 데뷔하였고, 결성 초반에는 홍대 부근에서 공연…"
+      ]
+    },
+    {
+      "kind": "cta",
+      "headline": "유익했다면 저장 & 공유",
+      "note": "팔로우하면 매일 새 소식을 받을 수 있어요"
+    },
+    {
+      "kind": "credits",
+      "headline": "출처",
+      "bullets": [
+        "[Wikipedia] 서울병",
+        "[Wikipedia] 쏜애플"
+      ]
+    }
+  ],
+  "hashtags": [
+    "#쏜애플의",
+    "#음악",
+    "#콘서트",
+    "#페스티벌",
+    "#신곡",
+    "#공연",
+    "#카드뉴스",
+    "#오늘의정보",
+    "#눈에",
+    "#핵심",
+    "#입문자를"
+  ],
+  "credits": {
+    "sources": [
+      {
+        "title": "서울병",
+        "url": "https://ko.wikipedia.org/wiki/%EC%84%9C%EC%9A%B8%EB%B3%91",
+        "publisher": "Wikipedia"
+      },
+      {
+        "title": "쏜애플",
+        "url": "https://ko.wikipedia.org/wiki/%EC%8F%9C%EC%95%A0%ED%94%8C",
+        "publisher": "Wikipedia"
+      }
+    ]
+  },
+  "createdAt": "2026-02-18T08:29:50.939Z"
+}

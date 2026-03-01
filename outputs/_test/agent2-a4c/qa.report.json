@@ -1,0 +1,48 @@
+{
+  "createdAt": "2026-02-14T13:27:01.964Z",
+  "templateId": "cover.hero.v1",
+  "safeArea": {
+    "top": 80,
+    "bottom": 120,
+    "left": 60,
+    "right": 60
+  },
+  "overflow": {
+    "title": false,
+    "subtitle": false
+  },
+  "attempts": {
+    "overflow": 0,
+    "autofix": 2
+  },
+  "finalVars": {
+    "titleSizePx": 72,
+    "subtitleSizePx": 30,
+    "footerSizePx": 18,
+    "titleTopPx": 400,
+    "subtitleTopPx": 716,
+    "footerBottomPx": 52,
+    "hideSubtitle": false
+  },
+  "boxes": {
+    "title": {
+      "x": 60,
+      "y": 400,
+      "w": 960,
+      "h": 300,
+      "withinSafe": true
+    },
+    "footer": {
+      "x": 60,
+      "y": 1258,
+      "w": 960,
+      "h": 40,
+      "withinSafe": false,
+      "withinFooterZone": false
+    }
+  },
+  "violations": [
+    "footer_outside_safe_area",
+    "footer_outside_footer_zone"
+  ]
+}

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<style>
+:root {
+  --cta-size: 52px;
+  --footer-size: 22px;
+  --footer-bottom: 40px;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body {
+  width: 1080px;
+  height: 1350px;
+  overflow: hidden;
+}
+.canvas {
+  position: relative;
+  width: 1080px;
+  height: 1350px;
+  background: linear-gradient(160deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+  font-family: "Pretendard", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+  color: #fff;
+}
+.slot-cta {
+  position: absolute;
+  left: 60px;
+  top: 450px;
+  width: 960px;
+  height: 400px;
+  font-size: var(--cta-size);
+  font-weight: 700;
+  line-height: 1.4;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-shadow: 0 2px 12px rgba(0,0,0,0.4);
+  overflow: hidden;
+}
+.slot-footer {
+  position: absolute;
+  left: 60px;
+  bottom: var(--footer-bottom);
+  width: 960px;
+  height: 40px;
+  font-size: var(--footer-size);
+  color: rgba(255,255,255,0.7);
+  line-height: 40px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+</style>
+</head>
+<body>
+<div id="canvas" class="canvas" data-safe-top="80" data-safe-bottom="120" data-safe-left="60" data-safe-right="60" data-footer-zone-h="220">
+  <div id="box-cta" class="slot-cta" data-bbox-w="960" data-bbox-h="400">저장해두고 나중에 보기 · 팔로우하고 다음 편 받기</div>
+  <div id="box-footer" class="slot-footer">Photo by Fixture on Unsplash</div>
+</div>
+</body>
+</html>

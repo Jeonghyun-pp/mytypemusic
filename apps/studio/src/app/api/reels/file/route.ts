@@ -1,0 +1,41 @@
+import { NextResponse } from "next/server";
+import fs from "fs/promises";
+import path from "path";
+
+const UPLOAD_DIR = path.resolve(process.cwd(), "../../outputs/reels/uploads");
+
+export async function GET(req: Request) {
+  const { searchParams } = new URL(req.url);
+  const name = searchParams.get("name");
+
+  if (!name || name.includes("..") || name.includes("/") || name.includes("\\")) {
+    return NextResponse.json({ error: "Invalid filename" }, { status: 400 });
+  }
+
+  const filePath = path.join(UPLOAD_DIR, name);
+
+  try {
+    const stat = await fs.stat(filePath);
+    const buffer = await fs.readFile(filePath);
+
+    const ext = path.extname(name).toLowerCase();
+    const mimeMap: Record<string, string> = {
+      ".mp4": "video/mp4",
+      ".webm": "video/webm",
+      ".mov": "video/quicktime",
+      ".mkv": "video/x-matroska",
+    };
+    const contentType = mimeMap[ext] || "application/octet-stream";
+
+    return new Response(buffer, {
+      headers: {
+        "Content-Type": contentType,
+        "Content-Length": String(stat.size),
+        "Accept-Ranges": "bytes",
+        "Cache-Control": "public, max-age=3600",
+      },
+    });
+  } catch {
+    return NextResponse.json({ error: "File not found" }, { status: 404 });
+  }
+}

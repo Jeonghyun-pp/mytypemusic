@@ -1,0 +1,57 @@
+{
+  "topicId": "쏜애플의-20260218-7e0873",
+  "category": "music",
+  "region": "KR",
+  "title": "쏜애플의",
+  "subtitle": "매체 2개 기반 정리",
+  "deck": {
+    "size": {
+      "width": 1080,
+      "height": 1350
+    },
+    "format": "png",
+    "slides": []
+  },
+  "caption": {
+    "text": "쏜애플의 — 한 눈에 보는 타임라인\n\n▸ 서울병은 2016년 5월 19일에 발매된 쏜애플의 EP 앨범이다.\n▸ 쏜애플(Thornapple)은 대한민국의 3인조 록 밴드이며 주 장르는 사이키델릭 록이다.\n▸ 2009년에 밴드 '가시사과'라는 이름으로 데뷔하였고, 결성 초반에는 홍대 부근에서 공연 위주의 활동으로 …\n\n📌 참고: Wikipedia\n\n#쏜애플의 #음악 #콘서트 #페스티벌 #신곡 #공연 #카드뉴스 #오늘의정보 #눈에 #핵심 #입문자를",
+    "hashtags": [
+      "#쏜애플의",
+      "#음악",
+      "#콘서트",
+      "#페스티벌",
+      "#신곡",
+      "#공연",
+      "#카드뉴스",
+      "#오늘의정보",
+      "#눈에",
+      "#핵심",
+      "#입문자를"
+    ]
+  },
+  "compliance": {
+    "riskNotes": [
+      "TopicType: evergreen (Wikipedia + Spotify pipeline)",
+      "Wikipedia: \"서울병\" (1 sections)"
+    ],
+    "attribution": {},
+    "sources": [
+      {
+        "title": "서울병",
+        "url": "https://ko.wikipedia.org/wiki/%EC%84%9C%EC%9A%B8%EB%B3%91",
+        "publisher": "Wikipedia"
+      },
+      {
+        "title": "쏜애플",
+        "url": "https://ko.wikipedia.org/wiki/%EC%8F%9C%EC%95%A0%ED%94%8C",
+        "publisher": "Wikipedia"
+      }
+    ]
+  },
+  "provenance": {
+    "topicIntelPath": "C:\\Users\\pjhic\\Projects\\Web_magazine\\agents\\topic-intelligence\\outputs\\쏜애플의-20260218-7e0873\\topic-intel.json",
+    "contentPlanPath": "C:\\Users\\pjhic\\Projects\\Web_magazine\\agents\\topic-intelligence\\outputs\\쏜애플의-20260218-7e0873\\content-plan.json",
+    "agent2TopicPath": "C:\\Users\\pjhic\\Projects\\Web_magazine\\agents\\topic-intelligence\\outputs\\쏜애플의-20260218-7e0873\\topic.agent2.json"
+  },
+  "createdAt": "2026-02-18T05:49:18.081Z",
+  "version": "1.0"
+}

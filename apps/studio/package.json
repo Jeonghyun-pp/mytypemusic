@@ -1,0 +1,8 @@
+{
+  "name": "studio",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "bundle:remotion": "npx remotion bundle src/remotion/index.ts --out-dir=remotion-bundle"
+  }
+}

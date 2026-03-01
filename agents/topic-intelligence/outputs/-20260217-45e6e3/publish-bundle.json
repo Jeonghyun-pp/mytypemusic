@@ -1,0 +1,85 @@
+{
+  "topicId": "-20260217-45e6e3",
+  "category": "music",
+  "region": "KR",
+  "title": "���̽Ľ�",
+  "subtitle": "Coverage: sources=10, publish…",
+  "deck": {
+    "size": {
+      "width": 1080,
+      "height": 1350
+    },
+    "format": "png",
+    "slides": []
+  },
+  "caption": {
+    "text": "���̽Ľ� 한 장 요약\n\n▸ 박군, 프로농구 코트 뜬다신곡 ‘땡잡았다’ 선공개\n▸ 테니스 스타 고프의 소신발언\"미국, 다양성 가치 되찾아야\"\n▸ ‘컴백 D-6’ 아이브, 정규 2집 하이라이트 메들리 공개전 멤버 솔로곡 수록\n\n📌 참고: 동아일보, ghp@sbs.co.kr(편광현), 신주영 기자, 서현희 기자\n\n#���̽Ľ� #음악 #콘서트 #페스티벌 #신곡 #공연 #카드뉴스 #오늘의정보 #요약 #핵심만 #3줄 #초보자용 #배경",
+    "hashtags": [
+      "#���̽Ľ�",
+      "#음악",
+      "#콘서트",
+      "#페스티벌",
+      "#신곡",
+      "#공연",
+      "#카드뉴스",
+      "#오늘의정보",
+      "#요약",
+      "#핵심만",
+      "#3줄",
+      "#초보자용",
+      "#배경"
+    ]
+  },
+  "compliance": {
+    "riskNotes": [
+      "Coverage: sources=10, publishers=4, 24h=8, score=84/100",
+      "Some sources missing publishedAt; recency filtering may be approximate."
+    ],
+    "attribution": {},
+    "sources": [
+      {
+        "title": "박군, 프로농구 코트 뜬다…신곡 ‘땡잡았다’ 선공개",
+        "url": "https://sports.donga.com/ent/article/all/20260217/133371240/1",
+        "publisher": "동아일보",
+        "publishedAt": "2026-02-17T05:02:08.000Z"
+      },
+      {
+        "title": "테니스 스타 고프의 소신발언…\"미국, 다양성 가치 되찾아야\"",
+        "url": "https://news.sbs.co.kr/news/endPage.do?news_id=N1008445983",
+        "publisher": "ghp@sbs.co.kr(편광현)",
+        "publishedAt": "2026-02-17T04:36:00.000Z"
+      },
+      {
+        "title": "‘컴백 D-6’ 아이브, 정규 2집 하이라이트 메들리 공개…전 멤버 솔로곡 수록",
+        "url": "https://sports.donga.com/ent/article/all/20260217/133371053/1",
+        "publisher": "동아일보",
+        "publishedAt": "2026-02-17T02:04:25.000Z"
+      },
+      {
+        "title": "송가인, 설 안방 울렸다…‘국보급 보이스’로 ‘가요무대’ 대미 장식",
+        "url": "https://sports.donga.com/ent/article/all/20260217/133370994/1",
+        "publisher": "동아일보",
+        "publishedAt": "2026-02-17T01:17:02.000Z"
+      },
+      {
+        "title": "몬엑→아이브 2026 설맞이 인사…“열정적으로 도전하고 원하는 바 이루시길”",
+        "url": "https://sports.donga.com/ent/article/all/20260217/133370841/1",
+        "publisher": "동아일보",
+        "publishedAt": "2026-02-16T23:11:31.000Z"
+      },
+      {
+        "title": "임영웅 30만표 클래스…영웅시대 화력 폭발",
+        "url": "https://sports.donga.com/ent/article/all/20260217/133370833/1",
+        "publisher": "동아일보",
+        "publishedAt": "2026-02-16T23:11:10.000Z"
+      }
+    ]
+  },
+  "provenance": {
+    "topicIntelPath": "C:\\Users\\pjhic\\Projects\\Web_magazine\\agents\\topic-intelligence\\outputs\\-20260217-45e6e3\\topic-intel.json",
+    "contentPlanPath": "C:\\Users\\pjhic\\Projects\\Web_magazine\\agents\\topic-intelligence\\outputs\\-20260217-45e6e3\\content-plan.json",
+    "agent2TopicPath": "C:\\Users\\pjhic\\Projects\\Web_magazine\\agents\\topic-intelligence\\outputs\\-20260217-45e6e3\\topic.agent2.json"
+  },
+  "createdAt": "2026-02-17T10:02:16.370Z",
+  "version": "1.0"
+}

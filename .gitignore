@@ -1,0 +1,31 @@
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Dependencies
+node_modules/
+
+# Build
+.next/
+dist/
+*.tsbuildinfo
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.idea/
+*.swp
+*.swo
+
+# Outputs (런 결과물)
+outputs/runs/
+
+# Test outputs
+test-e2e-*/
+
+# Prisma generated client
+apps/studio/src/generated/

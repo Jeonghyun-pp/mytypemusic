@@ -1,0 +1,80 @@
+{
+  "templateId": "music.album.cover.v1",
+  "family": "music.album",
+  "safeArea": {
+    "top": 80,
+    "right": 60,
+    "bottom": 120,
+    "left": 60
+  },
+  "slots": [
+    {
+      "id": "albumArt",
+      "type": "image",
+      "x": 190,
+      "y": 200,
+      "width": 700,
+      "height": 700,
+      "fit": "cover"
+    },
+    {
+      "id": "title",
+      "type": "text",
+      "x": 60,
+      "y": 960,
+      "width": 960,
+      "height": 120,
+      "style": {
+        "fontSize": 48,
+        "fontWeight": "bold",
+        "color": "#FFFFFF",
+        "textShadow": "0 2px 8px rgba(0,0,0,0.6)",
+        "textAlign": "center"
+      },
+      "constraints": { "maxLines": 2, "maxChars": 60 }
+    },
+    {
+      "id": "artist",
+      "type": "text",
+      "x": 60,
+      "y": 1090,
+      "width": 960,
+      "height": 50,
+      "style": {
+        "fontSize": 28,
+        "fontWeight": "500",
+        "color": "rgba(255,255,255,0.8)",
+        "textAlign": "center"
+      },
+      "constraints": { "maxLines": 1, "maxChars": 40 }
+    },
+    {
+      "id": "releaseDate",
+      "type": "text",
+      "x": 60,
+      "y": 1150,
+      "width": 960,
+      "height": 40,
+      "style": {
+        "fontSize": 20,
+        "color": "rgba(255,255,255,0.6)",
+        "textAlign": "center"
+      },
+      "constraints": { "maxLines": 1, "maxChars": 30 }
+    },
+    {
+      "id": "footerCredits",
+      "type": "text",
+      "x": 60,
+      "y": 1270,
+      "width": 960,
+      "height": 40,
+      "style": {
+        "fontSize": 14,
+        "color": "rgba(255,255,255,0.7)"
+      },
+      "constraints": { "maxLines": 1, "maxChars": 90 },
+      "attributionRequired": true
+    }
+  ]
+}

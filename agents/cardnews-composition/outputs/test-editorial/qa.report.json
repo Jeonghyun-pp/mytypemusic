@@ -1,0 +1,29 @@
+{
+  "createdAt": "2026-02-22T03:31:41.349Z",
+  "templateId": "cover.hero.v2",
+  "safeArea": {
+    "top": 75,
+    "bottom": 100,
+    "left": 75,
+    "right": 75
+  },
+  "overflow": {
+    "title": false,
+    "subtitle": false
+  },
+  "attempts": {
+    "overflow": 0,
+    "autofix": 0
+  },
+  "finalVars": {
+    "titleSizePx": 72,
+    "subtitleSizePx": 30,
+    "footerSizePx": 22,
+    "titleTopPx": 840,
+    "subtitleTopPx": 1110,
+    "footerBottomPx": 60,
+    "hideSubtitle": false
+  },
+  "boxes": {},
+  "violations": []
+}

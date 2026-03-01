@@ -1,0 +1,19 @@
+{
+  "allowed": true,
+  "attributionRequired": true,
+  "images": [
+    {
+      "assetId": "test-hero-001",
+      "localPath": "../../../test_image/images.jpeg",
+      "sourceUrl": "https://unsplash.com/photos/test-hero",
+      "role": "hero_unedited",
+      "recommendedAttribution": "Photo by Test on Unsplash"
+    }
+  ],
+  "attribution": {
+    "footerCredits": [
+      { "text": "Photo by Test on Unsplash", "provider": "unsplash" }
+    ],
+    "captionAppendix": "Image: Unsplash (@test)"
+  }
+}

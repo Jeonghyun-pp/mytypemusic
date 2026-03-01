@@ -1,0 +1,77 @@
+{
+  "templateId": "music.grid.v1",
+  "family": "music.grid",
+  "safeArea": {
+    "top": 80,
+    "right": 60,
+    "bottom": 120,
+    "left": 60
+  },
+  "slots": [
+    {
+      "id": "albumArt1",
+      "type": "image",
+      "x": 60,
+      "y": 200,
+      "width": 460,
+      "height": 460,
+      "fit": "cover"
+    },
+    {
+      "id": "albumArt2",
+      "type": "image",
+      "x": 560,
+      "y": 200,
+      "width": 460,
+      "height": 460,
+      "fit": "cover"
+    },
+    {
+      "id": "albumArt3",
+      "type": "image",
+      "x": 60,
+      "y": 700,
+      "width": 460,
+      "height": 460,
+      "fit": "cover"
+    },
+    {
+      "id": "albumArt4",
+      "type": "image",
+      "x": 560,
+      "y": 700,
+      "width": 460,
+      "height": 460,
+      "fit": "cover"
+    },
+    {
+      "id": "title",
+      "type": "text",
+      "x": 60,
+      "y": 80,
+      "width": 960,
+      "height": 80,
+      "style": {
+        "fontSize": 40,
+        "fontWeight": "bold",
+        "color": "#FFFFFF",
+        "textAlign": "center"
+      },
+      "constraints": { "maxLines": 2, "maxChars": 50 }
+    },
+    {
+      "id": "footerCredits",
+      "type": "text",
+      "x": 60,
+      "y": 1270,
+      "width": 960,
+      "height": 40,
+      "style": {
+        "fontSize": 14,
+        "color": "rgba(255,255,255,0.7)"
+      },
+      "constraints": { "maxLines": 1, "maxChars": 90 },
+      "attributionRequired": true
+    }
+  ]
+}

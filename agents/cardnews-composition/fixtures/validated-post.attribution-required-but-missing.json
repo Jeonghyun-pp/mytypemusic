@@ -1,0 +1,13 @@
+{
+  "allowed": true,
+  "attributionRequired": true,
+  "images": [
+    {
+      "assetId": "no-credit-asset-001",
+      "localPath": "dummy.jpg",
+      "sourceUrl": "https://example.com/no-credit",
+      "role": "hero_unedited"
+    }
+  ],
+  "attribution": {}
+}

@@ -1,0 +1,61 @@
+{
+  "topicId": "쏜애플의-20260218-b3c6e3",
+  "normalizedTopic": "쏜애플의",
+  "category": "music",
+  "angleCandidates": [
+    "쏜애플의 — 한 눈에 보는 타임라인",
+    "쏜애플의 — 핵심 업적 정리",
+    "쏜애플의 — 입문자를 위한 가이드",
+    "쏜애플의 — 디스코그래피 하이라이트",
+    "쏜애플의 — 대표곡 베스트 5",
+    "쏜애플의 — 음악적 영향과 유산",
+    "쏜애플의 — 장르별 추천곡"
+  ],
+  "sources": [
+    {
+      "title": "서울병",
+      "publisher": "Wikipedia",
+      "url": "https://ko.wikipedia.org/wiki/%EC%84%9C%EC%9A%B8%EB%B3%91"
+    },
+    {
+      "title": "쏜애플",
+      "publisher": "Wikipedia",
+      "url": "https://ko.wikipedia.org/wiki/%EC%8F%9C%EC%95%A0%ED%94%8C"
+    }
+  ],
+  "keyFacts": [
+    {
+      "text": "서울병은 2016년 5월 19일에 발매된 쏜애플의 EP 앨범이다.",
+      "evidenceUrls": [
+        "https://ko.wikipedia.org/wiki/%EC%84%9C%EC%9A%B8%EB%B3%91"
+      ]
+    },
+    {
+      "text": "쏜애플(Thornapple)은 대한민국의 3인조 록 밴드이며 주 장르는 사이키델릭 록이다.",
+      "evidenceUrls": [
+        "https://ko.wikipedia.org/wiki/%EC%8F%9C%EC%95%A0%ED%94%8C"
+      ]
+    },
+    {
+      "text": "2009년에 밴드 '가시사과'라는 이름으로 데뷔하였고, 결성 초반에는 홍대 부근에서 공연 위주의 활동으로 이름을 알리기 시작하였다.",
+      "evidenceUrls": [
+        "https://ko.wikipedia.org/wiki/%EC%8F%9C%EC%95%A0%ED%94%8C"
+      ]
+    }
+  ],
+  "imageQueries": [
+    "쏜애플의 concept illustration",
+    "쏜애플의 generic background photo",
+    "쏜애플의 live concert photo",
+    "쏜애플의 stage performance",
+    "쏜애플의 tour announcement",
+    "쏜애플의 band promo photo",
+    "쏜애플의 abstract design",
+    "쏜애플의 minimalist graphic"
+  ],
+  "riskNotes": [
+    "TopicType: evergreen (Wikipedia + Spotify pipeline)",
+    "Wikipedia: \"서울병\" (1 sections)"
+  ],
+  "createdAt": "2026-02-18T08:29:32.166Z"
+}

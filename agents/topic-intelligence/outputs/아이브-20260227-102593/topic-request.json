@@ -1,0 +1,13 @@
+{
+  "mode": "manual",
+  "seedKeyword": "아이브",
+  "depth": "explainer",
+  "region": "KR",
+  "maxArticles": 10,
+  "recencyDays": 7,
+  "searchEntities": [
+    "아이브"
+  ],
+  "topicId": "아이브-20260227-102593",
+  "createdAt": "2026-02-27T12:26:22.458Z"
+}

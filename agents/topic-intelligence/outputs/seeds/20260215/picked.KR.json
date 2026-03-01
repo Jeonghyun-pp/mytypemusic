@@ -1,0 +1,23 @@
+{
+  "pickedAt": "2026-02-15T03:35:29.841Z",
+  "dateYyyymmdd": "20260215",
+  "geo": "KR",
+  "sourceSnapshotPath": "test",
+  "pickMode": {
+    "mode": "pick",
+    "indexes": [
+      0
+    ]
+  },
+  "options": {},
+  "count": 1,
+  "seeds": [
+    {
+      "keyword": "아이유",
+      "category": "music",
+      "score": 46,
+      "source": "dailyTrends",
+      "traffic": 100
+    }
+  ]
+}

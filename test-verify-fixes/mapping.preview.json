@@ -1,0 +1,21 @@
+{
+  "heroImage": {
+    "kind": "image",
+    "assetId": "test-hero-001",
+    "localPath": "C:\\Users\\pjhic\\Projects\\Web_magazine\\test_image\\images.jpeg",
+    "sourceUrl": "https://unsplash.com/photos/test-hero",
+    "role": "hero_unedited"
+  },
+  "title": {
+    "kind": "text",
+    "text": "디에디트가 알려주는 2026 봄 인테리어 트렌드"
+  },
+  "footerCredits": {
+    "kind": "text",
+    "text": "Photo by Test on Unsplash"
+  },
+  "subtitle": {
+    "kind": "text",
+    "text": "올 봄, 집을 바꾸는 5가지 키워드"
+  }
+}

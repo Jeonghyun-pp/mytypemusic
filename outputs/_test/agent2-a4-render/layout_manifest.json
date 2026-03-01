@@ -1,0 +1,18 @@
+{
+  "postId": "fixture-ok-001",
+  "templateId": "cover.hero.v1",
+  "slidesCount": 1,
+  "slides": [
+    {
+      "index": 1,
+      "htmlFile": "slide_01.html",
+      "pngFile": "slide_01.png",
+      "template": "cover.hero.v1"
+    }
+  ],
+  "attribution": {
+    "footerRendered": true,
+    "captionAppendix": "Image: Unsplash (@fixture)"
+  },
+  "generatedAt": "2026-02-14T13:27:17.678Z"
+}

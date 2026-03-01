@@ -1,0 +1,18 @@
+{
+  "postId": "e3eafc6a-eab2-4948-ae85-fec21386846f",
+  "templateId": "cover.hero.v1",
+  "slidesCount": 1,
+  "slides": [
+    {
+      "index": 1,
+      "htmlFile": "slide_01.html",
+      "pngFile": "slide_01.png",
+      "template": "cover.hero.v1"
+    }
+  ],
+  "attribution": {
+    "footerRendered": true,
+    "captionAppendix": "Credits: Courtesy of smentertainment.com."
+  },
+  "generatedAt": "2026-02-16T17:16:48.774Z"
+}

@@ -1,0 +1,14 @@
+{
+  "mode": "manual",
+  "seedKeyword": "데이식스",
+  "category": "music",
+  "depth": "explainer",
+  "region": "KR",
+  "maxArticles": 10,
+  "recencyDays": 7,
+  "searchEntities": [
+    "데이식스"
+  ],
+  "topicId": "데이식스-20260220-8e4379",
+  "createdAt": "2026-02-20T04:01:40.284Z"
+}

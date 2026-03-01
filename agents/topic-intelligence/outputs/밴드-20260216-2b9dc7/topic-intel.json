@@ -1,0 +1,162 @@
+{
+  "topicId": "밴드-20260216-2b9dc7",
+  "normalizedTopic": "밴드",
+  "category": "music",
+  "angleCandidates": [
+    "밴드 한 장 요약",
+    "핵심만 3줄: 지금 무슨 일이야?",
+    "초보자용 배경 설명: 왜 중요한가",
+    "일정/라인업/공연 포인트만 정리",
+    "팬들이 주목하는 포인트 5가지",
+    "관련 키워드/반응으로 보는 흐름",
+    "지금 왜 뜨나: 최근 24시간 기사 7개 / 매체 4곳",
+    "한눈에 보는 커버리지: 최근 24시간 기사 7개 / 매체 4곳"
+  ],
+  "sources": [
+    {
+      "title": "‘싱어게인4’ 서울 콘서트 성공적 “뜨거운 ♥ 잊지 못할 것”",
+      "publisher": "동아일보",
+      "url": "https://sports.donga.com/ent/article/all/20260216/133369794/1",
+      "publishedAt": "2026-02-15T23:24:24.000Z"
+    },
+    {
+      "title": "클로즈 유어 아이즈, 日 투어 환상적 퍼포먼스로 열도 난리",
+      "publisher": "동아일보",
+      "url": "https://sports.donga.com/ent/article/all/20260216/133370197/1",
+      "publishedAt": "2026-02-16T07:33:47.000Z"
+    },
+    {
+      "title": "“2세 소식? 입이 무거워야…금방 생길 것” 김준호 급방긋 (독박투어4)",
+      "publisher": "동아일보",
+      "url": "https://sports.donga.com/ent/article/all/20260215/133368971/1",
+      "publishedAt": "2026-02-15T03:37:05.000Z"
+    },
+    {
+      "title": "버스커버스커 원년 멤버 박경구 별세···향년 38세",
+      "publisher": "서현희 기자",
+      "url": "https://www.khan.co.kr/article/202602101053001/?utm_source=khan_rss&utm_medium=rss&utm_campaign=culture_news"
+    },
+    {
+      "title": "‘연기력 논란’ 정우성, 한층 야윈 얼굴…근황 포착 [SD셀픽]",
+      "publisher": "동아일보",
+      "url": "https://sports.donga.com/ent/article/all/20260215/133369037/1",
+      "publishedAt": "2026-02-15T05:06:55.000Z"
+    },
+    {
+      "title": "‘보이즈2플래닛’ 예찬·태조, 조PD ‘ChoCo La Familia’ 합류",
+      "publisher": "동아일보",
+      "url": "https://sports.donga.com/ent/article/all/20260216/133370230/1",
+      "publishedAt": "2026-02-16T08:02:47.000Z"
+    },
+    {
+      "title": "셰플러, PGA 투어 8개 대회 연속 '톱4'…우즈와 타이",
+      "publisher": "sweeper@sbs.co.kr(홍석준)",
+      "url": "https://news.sbs.co.kr/news/endPage.do?news_id=N1008445490",
+      "publishedAt": "2026-02-16T04:00:00.000Z"
+    },
+    {
+      "title": "김시우, PGA 투어 AT&T 페블비치 프로암 45위…모리카와 우승",
+      "publisher": "chnovel@sbs.co.kr(최희진)",
+      "url": "https://news.sbs.co.kr/news/endPage.do?news_id=N1008445405",
+      "publishedAt": "2026-02-16T00:36:00.000Z"
+    },
+    {
+      "title": "임영웅 3관왕, KSPO DOME이 영웅시대였다",
+      "publisher": "동아일보",
+      "url": "https://sports.donga.com/ent/article/all/20260216/133369753/1",
+      "publishedAt": "2026-02-15T23:00:44.000Z"
+    },
+    {
+      "title": "방탄소년단 진, 부모님이 먼저 찾을 상",
+      "publisher": "동아일보",
+      "url": "https://sports.donga.com/ent/article/all/20260216/133369734/1",
+      "publishedAt": "2026-02-15T22:49:46.000Z"
+    }
+  ],
+  "keyFacts": [
+    {
+      "text": "‘싱어게인4’ 서울 콘서트 성공적 “뜨거운 ♥ 잊지 못할 것”",
+      "evidenceUrls": [
+        "https://sports.donga.com/ent/article/all/20260216/133369794/1",
+        "https://sports.donga.com/ent/article/all/20260215/133368971/1"
+      ]
+    },
+    {
+      "text": "클로즈 유어 아이즈, 日 투어 환상적 퍼포먼스로 열도 난리",
+      "evidenceUrls": [
+        "https://sports.donga.com/ent/article/all/20260216/133370197/1",
+        "https://news.sbs.co.kr/news/endPage.do?news_id=N1008445490",
+        "https://news.sbs.co.kr/news/endPage.do?news_id=N1008445405"
+      ]
+    },
+    {
+      "text": "“2세 소식? 입이 무거워야금방 생길 것” 김준호 급방긋",
+      "evidenceUrls": [
+        "https://sports.donga.com/ent/article/all/20260215/133368971/1",
+        "https://sports.donga.com/ent/article/all/20260216/133369794/1"
+      ]
+    },
+    {
+      "text": "버스커버스커 원년 멤버 박경구 별세향년 38세",
+      "evidenceUrls": [
+        "https://www.khan.co.kr/article/202602101053001/?utm_source=khan_rss&utm_medium=rss&utm_campaign=culture_news"
+      ]
+    },
+    {
+      "text": "‘연기력 논란’ 정우성, 한층 야윈 얼굴근황 포착",
+      "evidenceUrls": [
+        "https://sports.donga.com/ent/article/all/20260215/133369037/1"
+      ]
+    },
+    {
+      "text": "‘보이즈2플래닛’ 예찬태조, 조PD ‘ChoCo La Familia’ 합류",
+      "evidenceUrls": [
+        "https://sports.donga.com/ent/article/all/20260216/133370230/1"
+      ]
+    },
+    {
+      "text": "셰플러, PGA 투어 8개 대회 연속 '톱4'우즈와 타이",
+      "evidenceUrls": [
+        "https://news.sbs.co.kr/news/endPage.do?news_id=N1008445490",
+        "https://sports.donga.com/ent/article/all/20260216/133370197/1",
+        "https://news.sbs.co.kr/news/endPage.do?news_id=N1008445405"
+      ]
+    },
+    {
+      "text": "김시우, PGA 투어 AT&T 페블비치 프로암 45위모리카와 우승",
+      "evidenceUrls": [
+        "https://news.sbs.co.kr/news/endPage.do?news_id=N1008445405",
+        "https://sports.donga.com/ent/article/all/20260216/133370197/1",
+        "https://news.sbs.co.kr/news/endPage.do?news_id=N1008445490"
+      ]
+    },
+    {
+      "text": "임영웅 3관왕, KSPO DOME이 영웅시대였다",
+      "evidenceUrls": [
+        "https://sports.donga.com/ent/article/all/20260216/133369753/1"
+      ]
+    },
+    {
+      "text": "방탄소년단 진, 부모님이 먼저 찾을 상",
+      "evidenceUrls": [
+        "https://sports.donga.com/ent/article/all/20260216/133369734/1"
+      ]
+    }
+  ],
+  "imageQueries": [
+    "밴드 concept illustration",
+    "밴드 generic background photo",
+    "밴드 live concert photo",
+    "밴드 stage performance",
+    "밴드 tour announcement",
+    "밴드 band promo photo",
+    "밴드 abstract design",
+    "밴드 minimalist graphic"
+  ],
+  "riskNotes": [
+    "Coverage: sources=10, publishers=4, 24h=7, score=84/100",
+    "초상권/공식 이미지 사용 주의. 스톡/CC 우선.",
+    "Some sources missing publishedAt; recency filtering may be approximate."
+  ],
+  "createdAt": "2026-02-16T08:28:13.621Z"
+}

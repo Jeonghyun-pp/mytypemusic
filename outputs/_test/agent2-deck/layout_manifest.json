@@ -1,0 +1,143 @@
+{
+  "postId": "agent2-deck",
+  "createdAt": "2026-02-14T13:44:02.207Z",
+  "outputs": {
+    "caption": "caption.txt"
+  },
+  "deck": {
+    "slideCount": 6,
+    "size": {
+      "width": 1080,
+      "height": 1350
+    }
+  },
+  "credits": {
+    "footerLines": [
+      "Photo by Fixture on Unsplash"
+    ],
+    "captionAppendix": "Image: Unsplash (@fixture)"
+  },
+  "slides": [
+    {
+      "index": 1,
+      "kind": "cover",
+      "templateId": "cover.hero.v1",
+      "outputs": {
+        "html": "slide_01.html",
+        "png": "slide_01.png"
+      },
+      "usedAssets": [
+        {
+          "assetId": "fixture-ok-001",
+          "role": "hero_unedited",
+          "localPath": "dummy.jpg",
+          "sourceUrl": "https://unsplash.com/photos/fixture-ok"
+        }
+      ]
+    },
+    {
+      "index": 2,
+      "kind": "fact",
+      "templateId": "body.fact.v1",
+      "outputs": {
+        "html": "slide_02.html",
+        "png": "slide_02.png"
+      },
+      "usedAssets": [
+        {
+          "assetId": "fixture-ok-001",
+          "role": "hero_unedited",
+          "localPath": "dummy.jpg",
+          "sourceUrl": "https://unsplash.com/photos/fixture-ok"
+        }
+      ],
+      "text": {
+        "headline": "핵심 포인트",
+        "body": "First key fact that is somewhat long and verbose to test truncation behavior in the caption builder"
+      }
+    },
+    {
+      "index": 3,
+      "kind": "fact",
+      "templateId": "body.fact.v1",
+      "outputs": {
+        "html": "slide_03.html",
+        "png": "slide_03.png"
+      },
+      "usedAssets": [
+        {
+          "assetId": "fixture-ok-001",
+          "role": "hero_unedited",
+          "localPath": "dummy.jpg",
+          "sourceUrl": "https://unsplash.com/photos/fixture-ok"
+        }
+      ],
+      "text": {
+        "headline": "핵심 포인트",
+        "body": "Second key fact with extra details that nobody really needs but helps test edge cases thoroughly"
+      }
+    },
+    {
+      "index": 4,
+      "kind": "fact",
+      "templateId": "body.fact.v1",
+      "outputs": {
+        "html": "slide_04.html",
+        "png": "slide_04.png"
+      },
+      "usedAssets": [
+        {
+          "assetId": "fixture-ok-001",
+          "role": "hero_unedited",
+          "localPath": "dummy.jpg",
+          "sourceUrl": "https://unsplash.com/photos/fixture-ok"
+        }
+      ],
+      "text": {
+        "headline": "핵심 포인트",
+        "body": "Third key fact for good measure and to ensure bullet points render correctly even with long text"
+      }
+    },
+    {
+      "index": 5,
+      "kind": "fact",
+      "templateId": "body.fact.v1",
+      "outputs": {
+        "html": "slide_05.html",
+        "png": "slide_05.png"
+      },
+      "usedAssets": [
+        {
+          "assetId": "fixture-ok-001",
+          "role": "hero_unedited",
+          "localPath": "dummy.jpg",
+          "sourceUrl": "https://unsplash.com/photos/fixture-ok"
+        }
+      ],
+      "text": {
+        "headline": "핵심 포인트",
+        "body": "Fourth key fact because we want to hit the maximum of four allowed bullets in the caption output"
+      }
+    },
+    {
+      "index": 6,
+      "kind": "outro",
+      "templateId": "outro.cta.v1",
+      "outputs": {
+        "html": "slide_06.html",
+        "png": "slide_06.png"
+      },
+      "usedAssets": [
+        {
+          "assetId": "fixture-ok-001",
+          "role": "hero_unedited",
+          "localPath": "dummy.jpg",
+          "sourceUrl": "https://unsplash.com/photos/fixture-ok"
+        }
+      ],
+      "text": {
+        "cta": "저장해두고 나중에 보기 · 팔로우하고 다음 편 받기"
+      }
+    }
+  ]
+}

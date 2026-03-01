@@ -1,0 +1,67 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model DesignEntry {
+  id           String   @id @default(uuid())
+  category     String   @default("")
+  title        String
+  imageDataUri String   @db.Text
+  html         String   @db.Text
+  fontMood     String   @default("")
+  createdAt    DateTime @default(now())
+
+  @@index([category])
+  @@map("design_entries")
+}
+
+model CalendarEvent {
+  id        String   @id @default(uuid())
+  date      String
+  title     String
+  type      String
+  category  String   @default("")
+  status    String   @default("planned")
+  note      String   @default("")
+  createdAt DateTime @default(now())
+
+  @@index([date])
+  @@map("calendar_events")
+}
+
+model ContentPlan {
+  id          String     @id @default(uuid())
+  startDate   String
+  endDate     String
+  frequency   Json
+  summary     String     @default("")
+  preferences Json?
+  createdAt   DateTime   @default(now())
+  items       PlanItem[]
+
+  @@map("content_plans")
+}
+
+model PlanItem {
+  id              String      @id @default(uuid())
+  date            String
+  title           String
+  description     String      @default("")
+  type            String
+  category        String
+  tags            String[]    @default([])
+  reasoning       String      @default("")
+  addedToCalendar Boolean     @default(false)
+  calendarEventId String?
+
+  planId String
+  plan   ContentPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@index([planId])
+  @@map("plan_items")
+}

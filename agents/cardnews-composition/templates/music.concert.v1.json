@@ -1,0 +1,78 @@
+{
+  "templateId": "music.concert.v1",
+  "family": "music.concert",
+  "safeArea": {
+    "top": 80,
+    "right": 60,
+    "bottom": 120,
+    "left": 60
+  },
+  "slots": [
+    {
+      "id": "posterImage",
+      "type": "image",
+      "x": 0,
+      "y": 0,
+      "width": 1080,
+      "height": 700,
+      "fit": "cover"
+    },
+    {
+      "id": "venue",
+      "type": "text",
+      "x": 80,
+      "y": 740,
+      "width": 920,
+      "height": 60,
+      "style": {
+        "fontSize": 36,
+        "fontWeight": "bold",
+        "color": "#FFFFFF"
+      },
+      "constraints": { "maxLines": 1, "maxChars": 40 }
+    },
+    {
+      "id": "date",
+      "type": "text",
+      "x": 80,
+      "y": 820,
+      "width": 920,
+      "height": 50,
+      "style": {
+        "fontSize": 28,
+        "fontWeight": "600",
+        "color": "rgba(255,255,255,0.85)"
+      },
+      "constraints": { "maxLines": 1, "maxChars": 30 }
+    },
+    {
+      "id": "lineup",
+      "type": "text",
+      "x": 80,
+      "y": 900,
+      "width": 920,
+      "height": 300,
+      "style": {
+        "fontSize": 32,
+        "fontWeight": "500",
+        "color": "rgba(255,255,255,0.75)",
+        "lineHeight": 1.6
+      },
+      "constraints": { "maxLines": 8, "maxChars": 300 }
+    },
+    {
+      "id": "footerCredits",
+      "type": "text",
+      "x": 60,
+      "y": 1270,
+      "width": 960,
+      "height": 40,
+      "style": {
+        "fontSize": 14,
+        "color": "rgba(255,255,255,0.7)"
+      },
+      "constraints": { "maxLines": 1, "maxChars": 90 },
+      "attributionRequired": true
+    }
+  ]
+}

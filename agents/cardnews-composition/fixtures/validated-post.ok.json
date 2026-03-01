@@ -1,0 +1,19 @@
+{
+  "allowed": true,
+  "attributionRequired": true,
+  "images": [
+    {
+      "assetId": "fixture-ok-001",
+      "localPath": "dummy.jpg",
+      "sourceUrl": "https://unsplash.com/photos/fixture-ok",
+      "role": "hero_unedited",
+      "recommendedAttribution": "Photo by Fixture on Unsplash"
+    }
+  ],
+  "attribution": {
+    "footerCredits": [
+      { "text": "Photo by Fixture on Unsplash", "provider": "unsplash" }
+    ],
+    "captionAppendix": "Image: Unsplash (@fixture)"
+  }
+}

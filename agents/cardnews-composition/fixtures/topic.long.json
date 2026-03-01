@@ -1,0 +1,13 @@
+{
+  "title": "This Is an Extremely Long Title That Should Definitely Be Truncated Because It Exceeds Any Reasonable Limit for a Cover Slide",
+  "subtitle": "And the subtitle is also ridiculously long to test whether the text fitting logic properly handles overflow situations in the composition pipeline without breaking the layout",
+  "category": "fashion",
+  "keyFacts": [
+    "First key fact that is somewhat long and verbose to test truncation behavior in the caption builder",
+    "Second key fact with extra details that nobody really needs but helps test edge cases thoroughly",
+    "Third key fact for good measure and to ensure bullet points render correctly even with long text",
+    "Fourth key fact because we want to hit the maximum of four allowed bullets in the caption output",
+    "Fifth key fact that should be excluded since buildCaption only takes the first four entries from keyFacts"
+  ],
+  "hashtags": ["#fashion", "#longtext", "#test", "#truncation"]
+}

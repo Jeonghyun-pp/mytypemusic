@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head><meta charset="utf-8" />
+<style>
+:root {
+  --headline-size: 18px;
+  --body-size: 36px;
+  --footer-size: 22px;
+  --footer-bottom: 60px;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 1080px; height: 1350px; overflow: hidden; }
+.canvas {
+  display: flex; flex-direction: column;
+  position: relative; width: 1080px; height: 1350px;
+  background: #FAFAF8;
+  font-family: "Pretendard", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+  color: #1A1A1A;
+}
+/* Headline — small label (editorial caption style) */
+.slot-headline {
+  position: absolute; left: 75px; top: 140px;
+  width: 930px; height: 50px;
+  font-size: var(--headline-size); font-weight: 500;
+  color: rgba(26,26,26,0.55); letter-spacing: -0.2px;
+  line-height: 50px;
+  overflow: hidden;
+  display: flex; flex-direction: column;
+}
+/* Divider line under headline */
+.divider {
+  position: absolute; left: 75px; top: 210px;
+  width: 40px; height: 2px;
+  background: rgba(26,26,26,0.2);
+}
+/* Body text — editorial, generous spacing */
+.slot-body {
+  position: absolute; left: 75px; top: 400px;
+  width: 930px; max-height: 600px;
+  font-size: var(--body-size); font-weight: 600;
+  line-height: 1.5; letter-spacing: -0.5px;
+  overflow: hidden;
+  display: flex; flex-direction: column;
+}
+/* Footer */
+.slot-footer {
+  position: absolute; left: 75px; bottom: var(--footer-bottom);
+  width: 930px; height: 40px;
+  font-size: var(--footer-size); color: rgba(26,26,26,0.5);
+  line-height: 40px; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis;
+  display: flex; flex-direction: column;
+}
+
+/* --- Style Overrides --- */
+.canvas { background: #F5EDE3 !important; }
+.canvas { color: #3D3529 !important; }
+.slot-footer { color: rgba(61,53,41,0.5) !important; }
+.slot-headline { color: rgba(61,53,41,0.55) !important; }
+.canvas { font-family: "Noto Serif KR", "Pretendard", serif !important; }
+.slot-title { font-family: "Noto Serif KR", "Noto Serif KR", "Pretendard", serif !important; }
+.slot-body { font-family: "Pretendard", sans-serif !important; }
+.slot-headline { font-family: "Pretendard", sans-serif !important; }
+</style>
+</head>
+<body>
+<div id="canvas" class="canvas" data-safe-top="75" data-safe-bottom="100" data-safe-left="75" data-safe-right="75" data-footer-zone-h="220">
+  <div id="box-headline" class="slot-headline" data-bbox-w="930" data-bbox-h="50">알아두면 좋은 것</div>
+  <div class="divider"></div>
+  <div id="box-body" class="slot-body" data-bbox-w="930" data-bbox-h="600">식물 인테리어는 '정글' 에서 '큐레이션'으로. 한두 개의 포인트 식물이 트렌드</div>
+  <div id="box-footer" class="slot-footer">Photo by Test on Unsplash</div>
+</div>
+</body>
+</html>
