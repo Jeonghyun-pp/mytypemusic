@@ -54,6 +54,7 @@ const TABS = [
   { label: "Calendar", href: "/studio/calendar" },
   { label: "Plan", href: "/studio/plan" },
   { label: "Database", href: "/studio/database" },
+  { label: "Research", href: "/studio/research" },
 ] as const;
 
 export default function StudioLayout({ children }: { children: React.ReactNode }) {

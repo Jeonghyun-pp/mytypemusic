@@ -6,14 +6,17 @@ import { useDesignDatabase, type DesignEntry } from "./databaseStore";
 import EntryCard from "./EntryCard";
 import EntryDetail from "./EntryDetail";
 import UploadForm from "./UploadForm";
+import MoodSearchView from "./MoodSearchView";
 
 type PanelMode = "browse" | "upload" | "detail";
+type ViewTab = "references" | "mood-search";
 
 export default function DatabaseView() {
   const store = useDesignDatabase();
   const [filterCategory, setFilterCategory] = useState("");
   const [selectedEntry, setSelectedEntry] = useState<DesignEntry | null>(null);
   const [mode, setMode] = useState<PanelMode>("browse");
+  const [activeTab, setActiveTab] = useState<ViewTab>("references");
 
   const filtered = filterCategory
     ? store.entries.filter((e) => e.category === filterCategory)
@@ -46,27 +49,48 @@ export default function DatabaseView() {
       <div style={s.header}>
         <div style={s.headerLeft}>
           <span style={s.title}>Database</span>
-          <span style={s.count}>{filtered.length}개</span>
+          {/* View tabs */}
+          <div style={s.viewTabRow}>
+            <button
+              type="button"
+              style={activeTab === "references" ? s.viewTabActive : s.viewTab}
+              onClick={() => setActiveTab("references")}
+            >
+              레퍼런스
+            </button>
+            <button
+              type="button"
+              style={activeTab === "mood-search" ? s.viewTabActive : s.viewTab}
+              onClick={() => setActiveTab("mood-search")}
+            >
+              무드 검색
+            </button>
+          </div>
         </div>
-        <div style={s.headerRight}>
-          <select
-            style={s.filterSelect}
-            value={filterCategory}
-            onChange={(e) => setFilterCategory(e.target.value)}
-          >
-            <option value="">전체 카테고리</option>
-            {CONTENT_CATEGORIES.map((c) => (
-              <option key={c.id} value={c.id}>{c.label}</option>
-            ))}
-          </select>
-          <button type="button" style={s.addBtn} onClick={handleAddClick}>
-            + 레퍼런스 추가
-          </button>
-        </div>
+        {activeTab === "references" && (
+          <div style={s.headerRight}>
+            <select
+              style={s.filterSelect}
+              value={filterCategory}
+              onChange={(e) => setFilterCategory(e.target.value)}
+            >
+              <option value="">전체 카테고리</option>
+              {CONTENT_CATEGORIES.map((c) => (
+                <option key={c.id} value={c.id}>{c.label}</option>
+              ))}
+            </select>
+            <button type="button" style={s.addBtn} onClick={handleAddClick}>
+              + 레퍼런스 추가
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* Body */}
-      <div style={s.body}>
+      {/* Mood Search Tab */}
+      {activeTab === "mood-search" && <MoodSearchView />}
+
+      {/* References Tab - Body */}
+      {activeTab === "references" && <div style={s.body}>
         {/* Grid */}
         <div style={s.gridSection}>
           {filtered.length === 0 ? (
@@ -118,7 +142,7 @@ export default function DatabaseView() {
             </div>
           )}
         </div>
-      </div>
+      </div>}
     </div>
   );
 }
@@ -151,6 +175,39 @@ const s = {
   count: {
     fontSize: "13px",
     color: "var(--text-muted)",
+  } as React.CSSProperties,
+
+  viewTabRow: {
+    display: "flex",
+    gap: "4px",
+    background: "var(--bg-input)",
+    borderRadius: "10px",
+    padding: "3px",
+  } as React.CSSProperties,
+
+  viewTab: {
+    padding: "6px 16px",
+    borderRadius: "8px",
+    border: "none",
+    background: "transparent",
+    color: "var(--text-muted)",
+    fontSize: "12px",
+    fontWeight: 500,
+    cursor: "pointer",
+    transition: "all var(--transition)",
+  } as React.CSSProperties,
+
+  viewTabActive: {
+    padding: "6px 16px",
+    borderRadius: "8px",
+    border: "none",
+    background: "var(--bg-card)",
+    boxShadow: "var(--shadow-card)",
+    color: "var(--text)",
+    fontSize: "12px",
+    fontWeight: 600,
+    cursor: "pointer",
+    transition: "all var(--transition)",
   } as React.CSSProperties,
 
   headerRight: {

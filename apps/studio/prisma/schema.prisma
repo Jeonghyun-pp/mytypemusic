@@ -65,3 +65,33 @@ model PlanItem {
   @@index([planId])
   @@map("plan_items")
 }
+
+model MoodSearch {
+  id           String   @id @default(uuid())
+  imageDataUri String   @db.Text
+  moodKeywords String[] @default([])
+  colorPalette String[] @default([])
+  atmosphere   String   @default("")
+  resultCount  Int      @default(0)
+  createdAt    DateTime @default(now())
+
+  @@map("mood_searches")
+}
+
+model BenchmarkReport {
+  id               String   @id @default(uuid())
+  title            String
+  source           String   @default("")
+  imageCount       Int      @default(0)
+  slideComposition Json?
+  writingStyle     Json?
+  visualDesign     Json?
+  insights         Json?
+  rawAnalysis      Json?
+  screenshots      Json?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([createdAt])
+  @@map("benchmark_reports")
+}
