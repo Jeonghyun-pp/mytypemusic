@@ -103,57 +103,87 @@ export default function PlanView() {
       });
 
       const patch = { addedToCalendar: true, calendarEventId };
-      const updatedItems = currentPlan.items.map((i) =>
-        i.id === item.id ? { ...i, ...patch } : i,
-      );
-      const updatedPlan = { ...currentPlan, items: updatedItems };
-      setCurrentPlan(updatedPlan);
+      setCurrentPlan((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          items: prev.items.map((i) =>
+            i.id === item.id ? { ...i, ...patch } : i,
+          ),
+        };
+      });
       planStore.updatePlanItem(currentPlan.id, item.id, patch);
     },
     [currentPlan, calendarStore, planStore],
   );
 
   const handleRemoveFromCalendar = useCallback(
-    (item: PlanItem) => {
+    async (item: PlanItem) => {
       if (!currentPlan || !item.addedToCalendar) return;
 
       if (item.calendarEventId) {
-        calendarStore.deleteEvent(item.calendarEventId);
+        await calendarStore.deleteEvent(item.calendarEventId);
       }
 
-      const patch = { addedToCalendar: false, calendarEventId: undefined };
-      const updatedItems = currentPlan.items.map((i) =>
-        i.id === item.id ? { ...i, ...patch } : i,
-      );
-      const updatedPlan = { ...currentPlan, items: updatedItems };
-      setCurrentPlan(updatedPlan);
+      const patch = { addedToCalendar: false, calendarEventId: null as string | null };
+      setCurrentPlan((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          items: prev.items.map((i) =>
+            i.id === item.id ? { ...i, ...patch } : i,
+          ),
+        };
+      });
       planStore.updatePlanItem(currentPlan.id, item.id, patch);
     },
     [currentPlan, calendarStore, planStore],
   );
 
   const handleUpdateItem = useCallback(
-    (itemId: string, patch: Partial<PlanItem>) => {
+    async (itemId: string, patch: Partial<PlanItem>) => {
       if (!currentPlan) return;
+      const item = currentPlan.items.find((i) => i.id === itemId);
       const updatedItems = currentPlan.items.map((i) =>
         i.id === itemId ? { ...i, ...patch } : i,
       );
       const updatedPlan = { ...currentPlan, items: updatedItems };
       setCurrentPlan(updatedPlan);
       planStore.updatePlanItem(currentPlan.id, itemId, patch);
+
+      if (item?.addedToCalendar && item.calendarEventId) {
+        const calendarPatch: Record<string, string> = {};
+        if (patch.date !== undefined) calendarPatch.date = patch.date;
+        if (patch.title !== undefined) calendarPatch.title = patch.title;
+        if (patch.type !== undefined) calendarPatch.type = patch.type;
+        if (patch.category !== undefined) calendarPatch.category = patch.category;
+        if (patch.description !== undefined || patch.tags !== undefined) {
+          const merged = { ...item, ...patch };
+          calendarPatch.note =
+            merged.description +
+            (merged.tags.length ? `\n\n${merged.tags.join(" ")}` : "");
+        }
+        if (Object.keys(calendarPatch).length > 0) {
+          calendarStore.updateEvent(item.calendarEventId, calendarPatch);
+        }
+      }
     },
-    [currentPlan, planStore],
+    [currentPlan, planStore, calendarStore],
   );
 
   const handleDeleteItem = useCallback(
     async (itemId: string) => {
       if (!currentPlan) return;
+      const item = currentPlan.items.find((i) => i.id === itemId);
       const updatedItems = currentPlan.items.filter((i) => i.id !== itemId);
       setCurrentPlan({ ...currentPlan, items: updatedItems });
       if (selectedItemId === itemId) setSelectedItemId(null);
+      if (item?.addedToCalendar && item.calendarEventId) {
+        await calendarStore.deleteEvent(item.calendarEventId);
+      }
       await planStore.deletePlanItem(currentPlan.id, itemId);
     },
-    [currentPlan, selectedItemId, planStore],
+    [currentPlan, selectedItemId, planStore, calendarStore],
   );
 
   const handleAddItem = useCallback(async () => {

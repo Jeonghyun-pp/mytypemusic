@@ -33,6 +33,10 @@ export function useCalendarEvents() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(ev),
       });
+      if (!res.ok) {
+        const err = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(err.error ?? `Failed to create event (${res.status})`);
+      }
       const created = (await res.json()) as CalendarEvent;
       setEvents((prev) => [...prev, created]);
       return created.id;

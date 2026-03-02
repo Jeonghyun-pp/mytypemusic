@@ -10,11 +10,18 @@ import path from "node:path";
 // ============================================================================
 // Resolve fonts directory (works from any caller location)
 // ============================================================================
-// Use process.cwd() because __dirname is unreliable in bundled contexts
-// (Turbopack/webpack rewrites it to the bundle output directory).
-// Both `next dev` and Agent CLI run from the repo root.
+// Try process.cwd() first (works when running from repo root, e.g. Agent CLI),
+// then fall back to ../../ relative to cwd (works when running from apps/studio/).
 
-const FONTS_DIR = path.resolve(process.cwd(), "agents", "cardnews-composition", "fonts");
+import { existsSync } from "node:fs";
+
+function resolveFontsDir(): string {
+  const fromCwd = path.resolve(process.cwd(), "agents", "cardnews-composition", "fonts");
+  if (existsSync(fromCwd)) return fromCwd;
+  return path.resolve(process.cwd(), "..", "..", "agents", "cardnews-composition", "fonts");
+}
+
+const FONTS_DIR = resolveFontsDir();
 
 // ============================================================================
 // Types

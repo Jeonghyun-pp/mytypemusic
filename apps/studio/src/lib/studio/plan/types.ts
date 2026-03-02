@@ -31,7 +31,7 @@ export const PlanItemSchema = z.object({
   tags: z.array(z.string()),
   reasoning: z.string(),
   addedToCalendar: z.boolean(),
-  calendarEventId: z.string().optional(),
+  calendarEventId: z.string().nullable().optional(),
 });
 export type PlanItem = z.infer<typeof PlanItemSchema>;
 
