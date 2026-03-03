@@ -29,7 +29,7 @@ export default function EntryDetail({ entry, onUpdate, onDelete, onClose }: Entr
       fontMood: entry.fontMood,
       title: entry.title,
     }));
-    router.push("/studio/design");
+    router.push("/studio/design?quick=1");
   }
 
   const cat = CONTENT_CATEGORIES.find((c) => c.id === entry.category);

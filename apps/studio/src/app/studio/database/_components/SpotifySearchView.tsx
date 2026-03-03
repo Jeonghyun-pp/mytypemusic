@@ -147,7 +147,7 @@ export default function SpotifySearchView() {
         spotifyUrl: selected.spotifyUrl,
       };
       localStorage.setItem("studio-spotify-load", JSON.stringify(loadData));
-      router.push("/studio/design");
+      router.push("/studio/design?quick=1");
     } catch {
       setError("이미지 저장 중 오류가 발생했습니다");
     } finally {
