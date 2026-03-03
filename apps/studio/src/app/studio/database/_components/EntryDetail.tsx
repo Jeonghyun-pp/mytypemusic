@@ -28,6 +28,7 @@ export default function EntryDetail({ entry, onUpdate, onDelete, onClose }: Entr
       html: entry.html,
       fontMood: entry.fontMood,
       title: entry.title,
+      imageDataUri: entry.imageDataUri,
     }));
     router.push("/studio/design?quick=1");
   }

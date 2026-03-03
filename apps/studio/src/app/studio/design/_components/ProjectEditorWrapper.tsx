@@ -60,7 +60,6 @@ export default function ProjectEditorWrapper({ projectId }: ProjectEditorWrapper
         setSaving(true);
         const liteSpec = {
           ...spec,
-          slides: spec.slides.map((sl) => ({ ...sl, heroImageDataUri: undefined })),
         };
         fetch(`/api/db/projects/${projectId}`, {
           method: "PATCH",

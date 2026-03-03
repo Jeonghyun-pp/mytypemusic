@@ -291,10 +291,11 @@ export default function DesignEditor({ projectId, initialSpec, onAutoSave }: Des
       const loadData = localStorage.getItem("studio-database-load");
       if (loadData) {
         localStorage.removeItem("studio-database-load");
-        const { html, fontMood: mood } = JSON.parse(loadData) as {
+        const { html, fontMood: mood, imageDataUri } = JSON.parse(loadData) as {
           html: string;
           fontMood?: string;
           title?: string;
+          imageDataUri?: string;
         };
         if (html) {
           setSpec((prev) => {
@@ -302,6 +303,7 @@ export default function DesignEditor({ projectId, initialSpec, onAutoSave }: Des
             slides[prev.currentSlideIndex] = {
               ...slides[prev.currentSlideIndex]!,
               customHtml: html,
+              ...(imageDataUri ? { heroImageDataUri: imageDataUri } : {}),
             };
             return {
               ...prev,
@@ -357,12 +359,17 @@ export default function DesignEditor({ projectId, initialSpec, onAutoSave }: Des
   useEffect(() => {
     if (!projectId) {
       try {
-        const lite = {
-          ...spec,
-          slides: spec.slides.map((sl) => ({ ...sl, heroImageDataUri: undefined })),
-        };
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(lite));
-      } catch { /* quota exceeded 등 무시 */ }
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(spec));
+      } catch {
+        // quota exceeded — retry without heavy image data
+        try {
+          const lite = {
+            ...spec,
+            slides: spec.slides.map((sl) => ({ ...sl, heroImageDataUri: undefined })),
+          };
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(lite));
+        } catch { /* still exceeded, ignore */ }
+      }
     }
 
     // DB auto-save for project mode
