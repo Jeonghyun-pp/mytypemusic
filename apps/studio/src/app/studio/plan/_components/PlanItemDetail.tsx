@@ -1,10 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import type { PlanItem, ContentType, CategoryId } from "@/lib/studio/plan/types";
 import { CONTENT_CATEGORIES } from "@/lib/studio/contentCategories";
 import { openGoogleCalendar } from "@/lib/studio/plan/googleCalendarUrl";
 import { downloadICS } from "@/lib/studio/plan/icsGenerator";
+import { createDefaultDesignSpec } from "@/lib/studio/designEditor/defaultSlides";
 
 interface PlanItemDetailProps {
   item: PlanItem;
@@ -27,6 +29,7 @@ export default function PlanItemDetail({
   onUpdate,
   onDelete,
 }: PlanItemDetailProps) {
+  const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState(item.title);
   const [description, setDescription] = useState(item.description);
@@ -34,6 +37,38 @@ export default function PlanItemDetail({
   const [type, setType] = useState<ContentType>(item.type);
   const [category, setCategory] = useState<string>(item.category);
   const [tagsText, setTagsText] = useState(item.tags.join(" "));
+  const [designLoading, setDesignLoading] = useState(false);
+
+  const handleDesignClick = useCallback(async () => {
+    setDesignLoading(true);
+    try {
+      // Check if a project already exists for this plan item
+      const res = await fetch(`/api/db/projects?planItemId=${item.id}`);
+      if (res.ok) {
+        const projects = (await res.json()) as { id: string }[];
+        if (Array.isArray(projects) && projects.length > 0) {
+          router.push(`/studio/design?project=${projects[0]!.id}`);
+          return;
+        }
+      }
+      // Create a new project linked to this plan item
+      const createRes = await fetch("/api/db/projects", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: item.title,
+          category: item.category,
+          planItemId: item.id,
+          specJson: createDefaultDesignSpec(),
+        }),
+      });
+      if (createRes.ok) {
+        const created = (await createRes.json()) as { id: string };
+        router.push(`/studio/design?project=${created.id}`);
+      }
+    } catch { /* ignore */ }
+    setDesignLoading(false);
+  }, [item.id, item.title, item.category, router]);
 
   // Sync local state when a different item is selected
   useEffect(() => {
@@ -130,6 +165,13 @@ export default function PlanItemDetail({
               ICS 다운로드
             </button>
           </div>
+          <button
+            style={styles.designBtn}
+            onClick={() => void handleDesignClick()}
+            disabled={designLoading}
+          >
+            {designLoading ? "이동 중..." : "디자인 시작"}
+          </button>
         </div>
       </div>
     );
@@ -389,6 +431,19 @@ const styles = {
     color: "var(--text-muted)",
     fontSize: "12px",
     fontWeight: 500,
+    cursor: "pointer",
+    transition: "all var(--transition)",
+  } as React.CSSProperties,
+
+  designBtn: {
+    width: "100%",
+    padding: "12px",
+    borderRadius: "12px",
+    border: "none",
+    background: "linear-gradient(135deg, #8B5CF6, #6366F1)",
+    color: "#fff",
+    fontSize: "14px",
+    fontWeight: 600,
     cursor: "pointer",
     transition: "all var(--transition)",
   } as React.CSSProperties,

@@ -218,8 +218,14 @@ function RefDropdown() {
 
 const FACT_TEMPLATES: TemplateId[] = ["body.fact.v1", "body.fact.v2", "body.fact.v3", "body.fact.v4"];
 
-export default function DesignEditor() {
-  const [spec, setSpec] = useState<DesignSpec>(createDefaultDesignSpec);
+interface DesignEditorProps {
+  projectId?: string;
+  initialSpec?: DesignSpec;
+  onAutoSave?: (spec: DesignSpec) => void;
+}
+
+export default function DesignEditor({ projectId, initialSpec, onAutoSave }: DesignEditorProps = {}) {
+  const [spec, setSpec] = useState<DesignSpec>(() => initialSpec ?? createDefaultDesignSpec());
   const [downloading, setDownloading] = useState(false);
   const [category, setCategory] = useState("");
 
@@ -278,6 +284,9 @@ export default function DesignEditor() {
 
   // ── Database에서 전달된 코드 로드 ─────────────────────
   useEffect(() => {
+    // Skip localStorage restore if initialSpec was provided (project mode)
+    if (initialSpec) return;
+
     try {
       const loadData = localStorage.getItem("studio-database-load");
       if (loadData) {
@@ -342,19 +351,23 @@ export default function DesignEditor() {
         localStorage.removeItem(STORAGE_KEY);
       }
     } catch { /* ignore */ }
-  }, []);
+  }, [initialSpec]);
 
-  // ── localStorage 자동 저장 ───────────────────────────
+  // ── localStorage 자동 저장 (빠른 디자인 모드에서만) ────
   useEffect(() => {
-    try {
-      // heroImageDataUri 는 크기가 클 수 있으므로 제외하고 저장
-      const lite = {
-        ...spec,
-        slides: spec.slides.map((sl) => ({ ...sl, heroImageDataUri: undefined })),
-      };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(lite));
-    } catch { /* quota exceeded 등 무시 */ }
-  }, [spec]);
+    if (!projectId) {
+      try {
+        const lite = {
+          ...spec,
+          slides: spec.slides.map((sl) => ({ ...sl, heroImageDataUri: undefined })),
+        };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(lite));
+      } catch { /* quota exceeded 등 무시 */ }
+    }
+
+    // DB auto-save for project mode
+    if (onAutoSave) onAutoSave(spec);
+  }, [spec, projectId, onAutoSave]);
 
   const currentSlide = spec.slides[spec.currentSlideIndex]!;
 

@@ -78,6 +78,22 @@ model MoodSearch {
   @@map("mood_searches")
 }
 
+model DesignProject {
+  id               String   @id @default(uuid())
+  title            String
+  status           String   @default("draft")
+  category         String   @default("")
+  specJson         Json
+  thumbnailDataUri String   @default("") @db.Text
+  planItemId       String?  @unique
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([status])
+  @@index([planItemId])
+  @@map("design_projects")
+}
+
 model BenchmarkReport {
   id               String   @id @default(uuid())
   title            String
