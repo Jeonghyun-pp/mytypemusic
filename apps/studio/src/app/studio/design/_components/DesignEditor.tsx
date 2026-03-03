@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { DesignSpecSchema } from "@/lib/studio/designEditor/types";
-import type { DesignSpec, SlideSpec, SlideStyleOverrides, AiDesignAction, FontMood, StylePresetId, TemplateId, CanvasSize } from "@/lib/studio/designEditor/types";
+import type { DesignSpec, SlideSpec, SlideStyleOverrides, AiDesignAction, FontMood, StylePresetId, TemplateId, CanvasSize, HeroImageFit } from "@/lib/studio/designEditor/types";
 import type { Layer, LayerKind } from "@/lib/studio/designEditor/layerTypes";
 import { createDefaultDesignSpec } from "@/lib/studio/designEditor/defaultSlides";
 import { applyActions } from "@/lib/studio/designEditor/applyActions";
@@ -535,6 +535,10 @@ export default function DesignEditor({ projectId, initialSpec, onAutoSave }: Des
     updateSpec((prev) => ({ ...prev, canvasSize: size }));
   }, [updateSpec]);
 
+  const handleHeroImageFitChange = useCallback((fit: HeroImageFit) => {
+    updateSpec((prev) => ({ ...prev, heroImageFit: fit }));
+  }, [updateSpec]);
+
   // ── Layer management ──────────────────────────────────
   const [selectedLayerId, setSelectedLayerId] = useState<string | null>(null);
 
@@ -655,8 +659,8 @@ export default function DesignEditor({ projectId, initialSpec, onAutoSave }: Des
       for (let i = 0; i < spec.slides.length; i++) {
         const slide = spec.slides[i]!;
         const fetchBody = slide.customHtml
-          ? { rawHtml: slide.customHtml, heroImageDataUri: slide.heroImageDataUri, fontMood: spec.fontMood, canvasSize: spec.canvasSize }
-          : { slide, globalStyle: spec.globalStyle, fontMood: spec.fontMood, canvasSize: spec.canvasSize };
+          ? { rawHtml: slide.customHtml, heroImageDataUri: slide.heroImageDataUri, fontMood: spec.fontMood, canvasSize: spec.canvasSize, heroImageFit: spec.heroImageFit }
+          : { slide, globalStyle: spec.globalStyle, fontMood: spec.fontMood, canvasSize: spec.canvasSize, heroImageFit: spec.heroImageFit };
         const res = await fetch("/api/design/render", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -706,6 +710,8 @@ export default function DesignEditor({ projectId, initialSpec, onAutoSave }: Des
           <CanvasSizeSelector
             value={spec.canvasSize}
             onChange={handleCanvasSizeChange}
+            heroImageFit={spec.heroImageFit ?? "fill"}
+            onHeroImageFitChange={handleHeroImageFitChange}
           />
           <span style={s.headerInfo}>
             Slide {String(spec.currentSlideIndex + 1)} / {String(spec.slides.length)}
@@ -778,6 +784,7 @@ export default function DesignEditor({ projectId, initialSpec, onAutoSave }: Des
             rawHtml={currentSlide.customHtml}
             fontMood={spec.fontMood}
             canvasSize={spec.canvasSize}
+            heroImageFit={spec.heroImageFit}
             effects={previewEffects}
           />
         )}

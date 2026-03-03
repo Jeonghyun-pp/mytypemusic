@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import type { SlideSpec, SlideStyleOverrides, CanvasSize } from "@/lib/studio/designEditor/types";
+import type { SlideSpec, SlideStyleOverrides, CanvasSize, HeroImageFit } from "@/lib/studio/designEditor/types";
 
 interface SvgEffects {
   shadow?: { offsetX: number; offsetY: number; blur: number; color: string };
@@ -14,6 +14,7 @@ interface PreviewPanelProps {
   rawHtml?: string;
   fontMood?: string;
   canvasSize?: CanvasSize;
+  heroImageFit?: HeroImageFit;
   effects?: SvgEffects;
 }
 
@@ -60,7 +61,7 @@ const s = {
   } as const,
 };
 
-export default function PreviewPanel({ slide, globalStyle, rawHtml, fontMood, canvasSize, effects }: PreviewPanelProps) {
+export default function PreviewPanel({ slide, globalStyle, rawHtml, fontMood, canvasSize, heroImageFit, effects }: PreviewPanelProps) {
   const [pngUri, setPngUri] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [renderTime, setRenderTime] = useState<number | null>(null);
@@ -94,8 +95,8 @@ export default function PreviewPanel({ slide, globalStyle, rawHtml, fontMood, ca
         };
       } else {
         const basePayload = rawHtml
-          ? { rawHtml, heroImageDataUri: slide.heroImageDataUri, fontMood, canvasSize }
-          : { slide, globalStyle, fontMood, canvasSize };
+          ? { rawHtml, heroImageDataUri: slide.heroImageDataUri, fontMood, canvasSize, heroImageFit }
+          : { slide, globalStyle, fontMood, canvasSize, heroImageFit };
         payload = {
           ...basePayload,
           ...(effects?.shadow ? { shadow: effects.shadow } : {}),
@@ -133,7 +134,7 @@ export default function PreviewPanel({ slide, globalStyle, rawHtml, fontMood, ca
       clearTimeout(debounceRef.current);
       abortRef.current?.abort();
     };
-  }, [slide, globalStyle, rawHtml, fontMood, canvasSize, effects]);
+  }, [slide, globalStyle, rawHtml, fontMood, canvasSize, heroImageFit, effects]);
 
   return (
     <div style={s.wrapper}>

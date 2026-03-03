@@ -103,6 +103,10 @@ export const CanvasSizeSchema = z.object({
 });
 export type CanvasSize = z.infer<typeof CanvasSizeSchema>;
 
+// ── Hero image fit mode ───────────────────────────────────
+export const HeroImageFitSchema = z.enum(["cover", "fill"]);
+export type HeroImageFit = z.infer<typeof HeroImageFitSchema>;
+
 // ── Full deck spec ─────────────────────────────────────────
 
 export const DesignSpecSchema = z.object({
@@ -113,6 +117,7 @@ export const DesignSpecSchema = z.object({
   fontMood: FontMoodSchema.optional(),
   presetId: StylePresetIdSchema.optional(),
   canvasSize: CanvasSizeSchema.optional(),
+  heroImageFit: HeroImageFitSchema.optional(),
 });
 export type DesignSpec = z.infer<typeof DesignSpecSchema>;
 

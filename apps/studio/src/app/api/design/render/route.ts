@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import crypto from "node:crypto";
 import { Resvg } from "@resvg/resvg-js";
-import { SlideSpecSchema, SlideStyleOverridesSchema, CanvasSizeSchema } from "@/lib/studio/designEditor/types";
+import { SlideSpecSchema, SlideStyleOverridesSchema, CanvasSizeSchema, HeroImageFitSchema } from "@/lib/studio/designEditor/types";
 import { LayerSchema } from "@/lib/studio/designEditor/layerTypes";
 import { renderSlideHtml, TEMPLATES } from "@/lib/studio/designEditor/templates";
 import { renderHtmlToDataUri, warmUp, isValidFontMood, MOOD_CSS_STACKS } from "@/lib/studio/designEditor/inlineRenderer";
@@ -140,6 +140,11 @@ export async function POST(req: Request) {
   const canvasWidth = canvasSizeParsed.success ? canvasSizeParsed.data.width : undefined;
   const canvasHeight = canvasSizeParsed.success ? canvasSizeParsed.data.height : undefined;
 
+  // ── Parse heroImageFit ────────────────────────────────
+  const heroImageFitRaw = (body as Record<string, unknown>).heroImageFit;
+  const heroImageFitParsed = HeroImageFitSchema.safeParse(heroImageFitRaw);
+  const heroImageFit = heroImageFitParsed.success ? heroImageFitParsed.data : "fill";
+
   // ── Layer mode: composeLayers → SVG → PNG ────────────
   const layersRaw = (body as Record<string, unknown>).layers;
   if (Array.isArray(layersRaw) && layersRaw.length > 0) {
@@ -191,7 +196,10 @@ export async function POST(req: Request) {
     if (typeof heroUri === "string" && heroUri.trim()) {
       const w = canvasWidth ?? 1080;
       const h = canvasHeight ?? 1350;
-      const heroImg = `<img src="${heroUri}" style="position:absolute;top:0;left:0;width:${String(w)}px;height:${String(h)}px;display:block;" />`;
+      const fitStyle = heroImageFit === "cover"
+        ? `position:absolute;top:0;left:0;width:${String(w)}px;height:${String(h)}px;object-fit:cover;display:block;`
+        : `position:absolute;top:0;left:0;width:${String(w)}px;height:${String(h)}px;display:block;`;
+      const heroImg = `<img src="${heroUri}" style="${fitStyle}" />`;
       const firstClose = html.indexOf(">");
       if (firstClose > -1) {
         html = html.slice(0, firstClose + 1) + heroImg + html.slice(firstClose + 1);

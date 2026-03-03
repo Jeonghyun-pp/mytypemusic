@@ -1,10 +1,12 @@
 "use client";
 
-import type { CanvasSize } from "@/lib/studio/designEditor/types";
+import type { CanvasSize, HeroImageFit } from "@/lib/studio/designEditor/types";
 
 interface CanvasSizeSelectorProps {
   value: CanvasSize | undefined;
   onChange: (size: CanvasSize) => void;
+  heroImageFit: HeroImageFit;
+  onHeroImageFitChange: (fit: HeroImageFit) => void;
 }
 
 const PRESETS: CanvasSize[] = [
@@ -43,9 +45,15 @@ const s = {
     whiteSpace: "nowrap" as const,
     fontWeight: 600,
   } as const,
+  sep: {
+    width: "1px",
+    height: "16px",
+    background: "var(--border-light)",
+    flexShrink: 0,
+  } as const,
 };
 
-export default function CanvasSizeSelector({ value, onChange }: CanvasSizeSelectorProps) {
+export default function CanvasSizeSelector({ value, onChange, heroImageFit, onHeroImageFitChange }: CanvasSizeSelectorProps) {
   const currentW = value?.width ?? 1080;
   const currentH = value?.height ?? 1350;
 
@@ -65,6 +73,23 @@ export default function CanvasSizeSelector({ value, onChange }: CanvasSizeSelect
           </button>
         );
       })}
+      <span style={s.sep} />
+      <button
+        type="button"
+        style={heroImageFit === "cover" ? s.active : s.btn}
+        onClick={() => onHeroImageFitChange("cover")}
+        title="이미지 비율 유지 (잘림 허용)"
+      >
+        잘림
+      </button>
+      <button
+        type="button"
+        style={heroImageFit === "fill" ? s.active : s.btn}
+        onClick={() => onHeroImageFitChange("fill")}
+        title="이미지를 캔버스에 맞춰 늘림"
+      >
+        채움
+      </button>
     </div>
   );
 }
