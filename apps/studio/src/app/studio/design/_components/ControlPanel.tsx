@@ -8,8 +8,9 @@ import AiDesignChat from "./AiDesignChat";
 import ReferenceImagesTab from "./ReferenceImagesTab";
 import CodeEditorTab from "./CodeEditorTab";
 import LayerPanel from "./LayerPanel";
+import DatabaseImportTab from "./DatabaseImportTab";
 
-type Tab = "style" | "ai" | "ref" | "code" | "layers";
+type Tab = "style" | "ai" | "ref" | "code" | "layers" | "db";
 
 interface ControlPanelProps {
   slide: SlideSpec;
@@ -143,6 +144,13 @@ export default function ControlPanel({
         >
           참고 이미지
         </button>
+        <button
+          type="button"
+          style={{ ...s.tab, ...(tab === "db" ? s.tabActive : {}) }}
+          onClick={() => setTab("db")}
+        >
+          DB
+        </button>
       </div>
 
       <div style={tab === "code" ? s.bodyNoPad : s.body}>
@@ -188,6 +196,14 @@ export default function ControlPanel({
             onCustomHtmlChange={onCustomHtmlChange}
             onSwitchToCodeTab={() => setTab("code")}
             onSlideChange={onSlideChange}
+          />
+        )}
+        {tab === "db" && (
+          <DatabaseImportTab
+            onCustomHtmlChange={onCustomHtmlChange}
+            onSlideChange={onSlideChange}
+            onFontMoodChange={onFontMoodChange}
+            onSwitchToCodeTab={() => setTab("code")}
           />
         )}
       </div>
