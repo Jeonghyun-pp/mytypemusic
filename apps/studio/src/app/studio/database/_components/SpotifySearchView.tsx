@@ -10,6 +10,7 @@ import {
   getSpotifyOpenUrl,
   type SpotifyEmbedType,
 } from "@/lib/studio/spotifyEmbed";
+import ProjectDestinationPicker from "./ProjectDestinationPicker";
 
 type SearchType = "album" | "artist" | "track";
 
@@ -34,6 +35,14 @@ export default function SpotifySearchView() {
 
   // Download state
   const [downloading, setDownloading] = useState(false);
+
+  // Destination picker state — holds downloaded image data until user picks
+  const [pendingImage, setPendingImage] = useState<{
+    imageDataUri: string;
+    attribution: string;
+    spotifyId: string;
+    spotifyUrl: string;
+  } | null>(null);
 
   const handleSearch = useCallback(async () => {
     if (!query.trim()) return;
@@ -113,7 +122,7 @@ export default function SpotifySearchView() {
     setTimeout(() => setCopied(null), 2000);
   }, [selected]);
 
-  // Download image and apply as heroImageDataUri
+  // Download image, then show destination picker
   const handleUseInDesign = useCallback(async () => {
     if (!selected || !selected.imageUrl) return;
     setDownloading(true);
@@ -138,22 +147,73 @@ export default function SpotifySearchView() {
 
       const data = (await res.json()) as { imageDataUri: string };
 
-      // Save to localStorage and navigate to design editor
-      const loadData = {
-        heroImageDataUri: data.imageDataUri,
-        footerText: selected.attribution,
-        source: "spotify",
+      // Store downloaded data and show destination picker
+      setPendingImage({
+        imageDataUri: data.imageDataUri,
+        attribution: selected.attribution,
         spotifyId: selected.spotifyId,
         spotifyUrl: selected.spotifyUrl,
-      };
-      localStorage.setItem("studio-spotify-load", JSON.stringify(loadData));
-      router.push("/studio/design?quick=1");
+      });
     } catch {
       setError("이미지 저장 중 오류가 발생했습니다");
     } finally {
       setDownloading(false);
     }
   }, [selected]);
+
+  // Quick design: save to localStorage and navigate
+  const handleDestQuick = useCallback(() => {
+    if (!pendingImage) return;
+    localStorage.setItem(
+      "studio-spotify-load",
+      JSON.stringify({
+        heroImageDataUri: pendingImage.imageDataUri,
+        footerText: pendingImage.attribution,
+        source: "spotify",
+        spotifyId: pendingImage.spotifyId,
+        spotifyUrl: pendingImage.spotifyUrl,
+      }),
+    );
+    setPendingImage(null);
+    router.push("/studio/design?quick=1");
+  }, [pendingImage, router]);
+
+  // Apply to existing project: PATCH heroImage into specJson, then navigate
+  const handleDestProject = useCallback(
+    async (projectId: string) => {
+      if (!pendingImage) return;
+      try {
+        // Load current project spec
+        const projRes = await fetch(`/api/db/projects/${projectId}`);
+        if (!projRes.ok) return;
+        const proj = (await projRes.json()) as { specJson: Record<string, unknown> };
+
+        // Patch heroImageDataUri into current slide
+        const spec = proj.specJson as {
+          slides?: { heroImageDataUri?: string; footerText?: string }[];
+          currentSlideIndex?: number;
+        };
+        const slides = Array.isArray(spec.slides) ? [...spec.slides] : [];
+        const idx = typeof spec.currentSlideIndex === "number" ? spec.currentSlideIndex : 0;
+        if (slides[idx]) {
+          slides[idx] = {
+            ...slides[idx],
+            heroImageDataUri: pendingImage.imageDataUri,
+            footerText: pendingImage.attribution,
+          };
+        }
+
+        await fetch(`/api/db/projects/${projectId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ specJson: { ...spec, slides } }),
+        });
+      } catch { /* ignore */ }
+      setPendingImage(null);
+      router.push(`/studio/design?project=${projectId}`);
+    },
+    [pendingImage, router],
+  );
 
   // Format duration
   function formatDuration(ms: number): string {
@@ -408,6 +468,15 @@ export default function SpotifySearchView() {
           )}
         </div>
       </div>
+
+      {/* Destination picker modal */}
+      {pendingImage && (
+        <ProjectDestinationPicker
+          onSelectQuick={handleDestQuick}
+          onSelectProject={(id) => void handleDestProject(id)}
+          onClose={() => setPendingImage(null)}
+        />
+      )}
     </div>
   );
 }
