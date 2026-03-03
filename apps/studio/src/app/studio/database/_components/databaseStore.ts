@@ -29,10 +29,12 @@ export function useDesignDatabase() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(entry),
       });
-      if (res.ok) {
-        const created = (await res.json()) as DesignEntry;
-        setEntries((prev) => [created, ...prev]);
+      if (!res.ok) {
+        const errData = await res.json().catch(() => null) as { error?: string } | null;
+        throw new Error(errData?.error ?? `저장 실패 (${res.status})`);
       }
+      const created = (await res.json()) as DesignEntry;
+      setEntries((prev) => [created, ...prev]);
     },
     [],
   );

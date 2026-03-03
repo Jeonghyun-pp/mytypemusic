@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import OpenAI from "openai";
 import {
   renderHtmlToDataUri,
+  measureOpacityRatio,
   warmUp,
 } from "@/lib/studio/designEditor/inlineRenderer";
 import type { FontMood } from "@/lib/studio/designEditor/inlineRenderer";
@@ -74,10 +75,19 @@ Your task: Analyze the given screenshot and SEPARATE it into two layers:
 1. HERO LAYER — The base photograph or key visual image (if one exists)
 2. OVERLAY LAYER — All design elements ABOVE the photo: text, logos, shapes, gradients, scrims, decorative elements
 
-## ANALYSIS STEP
-Determine: Does this design contain a base photograph/image beneath design elements?
-- YES → set hasHeroImage: true and generate HTML for ONLY the overlay elements
-- NO (purely graphic/text-based design) → set hasHeroImage: false and generate the COMPLETE HTML
+## CLASSIFICATION CRITERIA (follow strictly)
+Determine: Does this design contain a real **photograph** beneath design elements?
+
+Set hasHeroImage: **true** ONLY when:
+- There is a clearly recognizable photograph (person, place, object, scene) underneath text/graphic overlays
+- The photo occupies a significant portion of the canvas (≥30%)
+- Removing the photo would leave the design incomplete — the photo IS the visual content
+
+Set hasHeroImage: **false** when:
+- The background is a solid color, gradient, or abstract pattern
+- The design is entirely typographic or illustrative (no photograph)
+- There are small decorative images (icons, logos) but no dominant photo
+- Ambiguous cases: textured backgrounds, blurred color fields, abstract art
 
 ## CANVAS
 - Root element: <div style="position:relative;width:1080px;height:1350px;display:flex;flex-direction:column;overflow:hidden;background:transparent;">
@@ -85,14 +95,15 @@ Determine: Does this design contain a base photograph/image beneath design eleme
 
 ## WHEN hasHeroImage is TRUE (overlay-only):
 - Root div background MUST be: background:transparent
-- Do NOT recreate the photograph — it will be composited as a separate <img>
-- Generate ONLY overlay elements: text blocks, logos, gradient scrims, decorative shapes, colored overlays
-- Scrim/gradient overlays for text readability MUST be included (e.g. bottom gradient darkening)
+- Do NOT recreate the photograph in any way — no <img> tags, no colored divs mimicking the photo
+- Generate ONLY overlay elements: text blocks, logos, gradient scrims, decorative shapes, semi-transparent color overlays
+- Scrim/gradient overlays for text readability MUST be included (e.g. linear-gradient from transparent to rgba(0,0,0,0.6))
 - All overlay elements should use position:absolute with top/left in px
-- heroRegion describes where the photo sits (usually full canvas: {top:0, left:0, width:1080, height:1350})
+- heroRegion: bounding box of the photo area ({top, left, width, height} in px)
 
 ## WHEN hasHeroImage is FALSE (full mode):
 - Generate the complete design including backgrounds, gradients, all elements
+- overlayHtml field contains the COMPLETE HTML (no separation needed)
 
 ## SATORI COMPATIBILITY (STRICT)
 1. ALL styles inline: style="property:value; ..."
@@ -122,6 +133,8 @@ Determine: Does this design contain a base photograph/image beneath design eleme
 Return a JSON object (no markdown fences, no explanation):
 {
   "hasHeroImage": true or false,
+  "confidence": 0.0 to 1.0 (how confident you are in the hasHeroImage decision),
+  "reasoning": "Brief explanation of why this is/isn't a photo-based design (1-2 sentences)",
   "heroRegion": { "top": 0, "left": 0, "width": 1080, "height": 1350 } or null,
   "fontMood": "bold-display" or "clean-sans" or "editorial" or "impact" or "minimal",
   "overlayHtml": "<div style=\\"position:relative;width:1080px;height:1350px;display:flex;flex-direction:column;overflow:hidden;background:transparent;\\">...overlay elements...</div>"
@@ -143,29 +156,94 @@ interface HeroRegion {
 interface DecomposeResult {
   hasHeroImage: boolean;
   heroRegion: HeroRegion | null;
+  confidence: number; // 0-1, 판단 신뢰도
+  reasoning: string;  // 분리 판단 근거
   fontMood: string;
   overlayHtml: string;
 }
 
+/** JSON 텍스트에서 DecomposeResult를 추출하고 필수 필드를 검증한다 */
 function extractDecomposeResult(text: string): DecomposeResult {
   const trimmed = text.trim();
-  // Try direct parse
-  try {
-    return JSON.parse(trimmed) as DecomposeResult;
-  } catch { /* fall through */ }
-  // Try code fence extraction
-  const fenceMatch = /```(?:json)?\s*\n?([\s\S]*?)\n?\s*```/.exec(trimmed);
-  if (fenceMatch?.[1]) {
-    return JSON.parse(fenceMatch[1].trim()) as DecomposeResult;
+
+  let raw: Record<string, unknown> | null = null;
+
+  // 1) 직접 파싱
+  try { raw = JSON.parse(trimmed); } catch { /* fall through */ }
+
+  // 2) 코드 펜스 내부
+  if (!raw) {
+    const fenceMatch = /```(?:json)?\s*\n?([\s\S]*?)\n?\s*```/.exec(trimmed);
+    if (fenceMatch?.[1]) {
+      try { raw = JSON.parse(fenceMatch[1].trim()); } catch { /* fall through */ }
+    }
   }
-  // Try finding first { ... } block
-  const jsonMatch = /\{[\s\S]*\}/.exec(trimmed);
-  if (jsonMatch) {
-    return JSON.parse(jsonMatch[0]) as DecomposeResult;
+
+  // 3) 첫 번째 { ... } 블록
+  if (!raw) {
+    const jsonMatch = /\{[\s\S]*\}/.exec(trimmed);
+    if (jsonMatch) {
+      try { raw = JSON.parse(jsonMatch[0]); } catch { /* fall through */ }
+    }
   }
-  throw new Error("Could not parse decompose result as JSON");
+
+  if (!raw || typeof raw !== "object") {
+    throw new Error("Could not parse decompose result as JSON");
+  }
+
+  // ── 필수 필드 검증 ─────────────────────────────────
+  const hasHeroImage = typeof raw.hasHeroImage === "boolean" ? raw.hasHeroImage : false;
+  const overlayHtml = typeof raw.overlayHtml === "string" ? raw.overlayHtml : "";
+  const fontMood = typeof raw.fontMood === "string" ? raw.fontMood : "bold-display";
+  const confidence = typeof raw.confidence === "number" ? Math.min(1, Math.max(0, raw.confidence)) : 0.5;
+  const reasoning = typeof raw.reasoning === "string" ? raw.reasoning : "";
+
+  if (!overlayHtml || !overlayHtml.includes("<div")) {
+    throw new Error("overlayHtml is missing or invalid");
+  }
+
+  // heroRegion 검증
+  let heroRegion: HeroRegion | null = null;
+  if (raw.heroRegion && typeof raw.heroRegion === "object") {
+    const hr = raw.heroRegion as Record<string, unknown>;
+    if (
+      typeof hr.top === "number" && typeof hr.left === "number" &&
+      typeof hr.width === "number" && typeof hr.height === "number"
+    ) {
+      heroRegion = { top: hr.top, left: hr.left, width: hr.width, height: hr.height };
+    }
+  }
+
+  return { hasHeroImage, heroRegion, confidence, reasoning, fontMood, overlayHtml };
 }
 
+/**
+ * hasHeroImage=true 인 오버레이 HTML을 후처리한다.
+ * - 오버레이에 섞여 들어온 <img> 태그 제거 (사진 재현 방지)
+ * - 루트 div의 background가 transparent가 아니면 강제 교체
+ * - 큰 영역을 차지하는 불투명 배경색 div 제거 (사진을 컬러로 재현한 경우)
+ */
+function sanitizeOverlayHtml(html: string): string {
+  // <img> 태그 제거 (오버레이에 사진이 포함되면 안됨)
+  let result = html.replace(/<img\s[^>]*\/?>/gi, "");
+
+  // 루트 div background → transparent 강제
+  const rootStyleMatch = /^(<div\s+style=")([^"]*)(")/i.exec(result);
+  if (rootStyleMatch) {
+    let style = rootStyleMatch[2]!;
+    // background 속성을 transparent로 교체
+    if (/background\s*:[^;]+/i.test(style)) {
+      style = style.replace(/background\s*:[^;]+;?/gi, "background:transparent;");
+    } else {
+      style = `background:transparent;${style}`;
+    }
+    result = `${rootStyleMatch[1]}${style}${rootStyleMatch[3]}${result.slice(rootStyleMatch[0].length)}`;
+  }
+
+  return result;
+}
+
+/** 오버레이 HTML에 hero 이미지를 합성한다 */
 function composeHtml(
   overlayHtml: string,
   heroDataUri: string,
@@ -174,10 +252,11 @@ function composeHtml(
   const r = heroRegion ?? { top: 0, left: 0, width: 1080, height: 1350 };
   const heroImg = `<img src="${heroDataUri}" style="position:absolute;top:${r.top}px;left:${r.left}px;width:${r.width}px;height:${r.height}px;display:block;" />`;
 
-  // Insert hero <img> as first child of root div
-  const firstClose = overlayHtml.indexOf(">");
-  if (firstClose < 0) return overlayHtml;
-  return overlayHtml.slice(0, firstClose + 1) + heroImg + overlayHtml.slice(firstClose + 1);
+  // 루트 <div ...> 태그의 닫는 > 를 정확히 찾아서 그 직후에 삽입
+  const rootTagMatch = /^<div\s+[^>]*>/.exec(overlayHtml);
+  if (!rootTagMatch) return overlayHtml;
+  const insertPos = rootTagMatch[0].length;
+  return overlayHtml.slice(0, insertPos) + heroImg + overlayHtml.slice(insertPos);
 }
 
 // ── Warm-up ──────────────────────────────────────────────
@@ -339,8 +418,32 @@ export async function POST(req: Request) {
   const modeRaw = formData.get("mode");
   const mode = typeof modeRaw === "string" && modeRaw === "full" ? "full" : "decompose";
 
+  // Parse manual hero region (user-specified via drag selection)
+  let manualHeroRegion: HeroRegion | null = null;
+  const manualRegionRaw = formData.get("manualHeroRegion");
+  if (typeof manualRegionRaw === "string") {
+    try {
+      const parsed = JSON.parse(manualRegionRaw) as Record<string, unknown>;
+      if (
+        typeof parsed.top === "number" && typeof parsed.left === "number" &&
+        typeof parsed.width === "number" && typeof parsed.height === "number"
+      ) {
+        manualHeroRegion = {
+          top: parsed.top, left: parsed.left,
+          width: parsed.width, height: parsed.height,
+        };
+      }
+    } catch { /* ignore invalid JSON */ }
+  }
+
   const sysPrompt = mode === "decompose" ? DECOMPOSE_SYSTEM_PROMPT : SYSTEM_PROMPT;
-  const usrPrompt = mode === "decompose" ? DECOMPOSE_USER_PROMPT : USER_PROMPT;
+  // 수동 영역이 지정된 경우: GPT에게 사진 위치를 알려주고 오버레이만 생성하라고 지시
+  const usrPrompt = manualHeroRegion
+    ? `이 이미지에서 배경 사진은 top:${String(manualHeroRegion.top)}px, left:${String(manualHeroRegion.left)}px, ` +
+      `width:${String(manualHeroRegion.width)}px, height:${String(manualHeroRegion.height)}px 영역에 있습니다. ` +
+      `hasHeroImage를 true로 설정하고, 이 사진 위의 디자인 오버레이 요소(텍스트, 로고, 스크림, 장식)만 HTML로 생성하세요. ` +
+      `사진 자체를 코드로 재현하지 마세요. JSON 형식으로 응답하세요.`
+    : (mode === "decompose" ? DECOMPOSE_USER_PROMPT : USER_PROMPT);
 
   // Call OpenAI Vision API
   let rawText: string;
@@ -392,19 +495,61 @@ export async function POST(req: Request) {
       decompose = {
         hasHeroImage: false,
         heroRegion: null,
+        confidence: 0,
+        reasoning: "JSON parse failed — falling back to full mode",
         fontMood: "bold-display",
         overlayHtml: rawHtml,
       };
     }
 
-    const overlayHtml = sanitizeForSatori(decompose.overlayHtml);
+    // 수동 영역이 지정된 경우: GPT 판단을 무시하고 사용자 지정 영역 사용
+    if (manualHeroRegion) {
+      decompose.hasHeroImage = true;
+      decompose.heroRegion = manualHeroRegion;
+      decompose.confidence = 1;
+      decompose.reasoning = "사용자가 수동으로 사진 영역을 지정함";
+    }
+
+    // confidence가 낮으면 (< 0.4) hasHeroImage 판단을 신뢰하지 않고 full 모드로 처리
+    if (!manualHeroRegion && decompose.hasHeroImage && decompose.confidence < 0.4) {
+      decompose.hasHeroImage = false;
+      decompose.heroRegion = null;
+    }
+
+    // Satori 호환 sanitize
+    let overlayHtml = sanitizeForSatori(decompose.overlayHtml);
+
+    // hasHeroImage인 경우 오버레이 전용 후처리 (img 제거, background:transparent 강제)
+    if (decompose.hasHeroImage) {
+      overlayHtml = sanitizeOverlayHtml(overlayHtml);
+    }
+
     const fontMood: FontMood = (
       ["bold-display", "clean-sans", "editorial", "impact", "minimal", "playful"] as const
     ).includes(decompose.fontMood as FontMood)
       ? (decompose.fontMood as FontMood)
       : detectFontMood(overlayHtml);
 
-    // Compose: inject hero image into overlay HTML
+    // ── 렌더 기반 불투명도 검증 ─────────────────────────
+    // 오버레이만 렌더해서 실제 투명도를 측정한다.
+    // 불투명 비율이 75% 이상이면 GPT가 배경을 재현한 것으로 판단.
+    // 수동 영역 지정 시에는 무효화하지 않고 경고만 반환.
+    let opacityRatio: number | null = null;
+    if (decompose.hasHeroImage) {
+      try {
+        opacityRatio = await measureOpacityRatio(overlayHtml, fontMood);
+        if (opacityRatio > 0.75 && !manualHeroRegion) {
+          // 자동 모드: 오버레이가 너무 불투명 → 배경이 재현된 것으로 판단
+          decompose.hasHeroImage = false;
+          decompose.heroRegion = null;
+        }
+        // 수동 모드에서 불투명도가 높으면 opacityRatio로 클라이언트에 경고 전달
+      } catch {
+        // 측정 실패는 무시하고 계속 진행
+      }
+    }
+
+    // Compose: inject hero image into overlay HTML (미리보기용)
     const heroDataUri = `data:${mime};base64,${base64Data}`;
     const composedHtml = decompose.hasHeroImage
       ? composeHtml(overlayHtml, heroDataUri, decompose.heroRegion)
@@ -430,6 +575,9 @@ export async function POST(req: Request) {
       renderTimeMs: elapsed,
       mode: "decompose",
       hasHeroImage: decompose.hasHeroImage,
+      confidence: decompose.confidence,
+      reasoning: decompose.reasoning,
+      ...(opacityRatio !== null ? { opacityRatio: Math.round(opacityRatio * 100) } : {}),
       ...(decompose.hasHeroImage ? { overlayHtml } : {}),
       ...(decompose.heroRegion ? { heroRegion: decompose.heroRegion } : {}),
       ...(renderError ? { renderError } : {}),

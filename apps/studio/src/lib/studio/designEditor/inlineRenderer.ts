@@ -7,6 +7,7 @@
 import {
   renderHtmlToPngBuffer as sharedRenderBuffer,
   renderHtmlToDataUri as sharedRenderDataUri,
+  measureOpacityRatio as sharedMeasureOpacity,
   W,
   H,
 } from "@agents/shared/render";
@@ -49,6 +50,17 @@ export async function renderHtmlToDataUri(
   effects?: SvgEffectOptions,
 ): Promise<string> {
   return sharedRenderDataUri(html, fontMood, canvasWidth, canvasHeight, effects);
+}
+
+/**
+ * Measure the fraction of non-transparent pixels in the rendered HTML (0–1).
+ * Renders at 1/4 resolution for speed.
+ */
+export async function measureOpacityRatio(
+  html: string,
+  fontMood?: FontMood,
+): Promise<number> {
+  return sharedMeasureOpacity(html, fontMood);
 }
 
 // ── Warm-up ──────────────────────────────────────────────

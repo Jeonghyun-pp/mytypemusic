@@ -286,5 +286,46 @@ export async function renderHtmlToDataUri(
   return `data:image/png;base64,${buf.toString("base64")}`;
 }
 
+/**
+ * Render HTML and measure the fraction of non-transparent pixels (0–1).
+ *
+ * Used to verify overlay-only HTML: a proper overlay should have mostly
+ * transparent pixels (~20-40% opaque for text + scrims). If the ratio
+ * is very high (>75%), the overlay likely recreated the background.
+ *
+ * Renders at 1/4 resolution for speed (~50ms vs ~200ms at full res).
+ */
+export async function measureOpacityRatio(
+  html: string,
+  fontMood?: FontMood,
+): Promise<number> {
+  const w = Math.round(W / 4); // 270
+  const h = Math.round(H / 4); // 338
+  const vdom = htmlToVdom(html, w, h);
+  const fonts = await loadFontsForMood(fontMood ?? "bold-display");
+
+  const svg = await satori(vdom as Parameters<typeof satori>[0], {
+    width: w,
+    height: h,
+    fonts: fonts as Parameters<typeof satori>[1]["fonts"],
+  });
+
+  const resvg = new Resvg(svg, {
+    fitTo: { mode: "width" as const, value: w },
+  });
+  const rendered = resvg.render();
+  const pixels = rendered.pixels; // Uint8Array — RGBA, 4 bytes per pixel
+
+  const totalPixels = rendered.width * rendered.height;
+  let opaqueCount = 0;
+
+  // Every 4th byte starting at index 3 is the alpha channel
+  for (let i = 3; i < pixels.length; i += 4) {
+    if (pixels[i]! > 10) opaqueCount++; // alpha > 10 ≈ visible
+  }
+
+  return opaqueCount / totalPixels;
+}
+
 // Re-export FontMood for convenience
 export type { FontMood };

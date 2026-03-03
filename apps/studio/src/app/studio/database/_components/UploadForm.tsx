@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import { CONTENT_CATEGORIES } from "@/lib/studio/contentCategories";
 import type { DesignEntry } from "./databaseStore";
+import ImageMaskEditor from "./ImageMaskEditor";
 
 interface UploadFormProps {
-  onSave: (entry: Omit<DesignEntry, "id" | "createdAt">) => void;
+  onSave: (entry: Omit<DesignEntry, "id" | "createdAt">) => Promise<void>;
   onCancel: () => void;
 }
 
@@ -14,10 +15,17 @@ export default function UploadForm({ onSave, onCancel }: UploadFormProps) {
   const [category, setCategory] = useState("");
   const [imageDataUri, setImageDataUri] = useState("");
   const [html, setHtml] = useState("");
+  const [overlayHtml, setOverlayHtml] = useState("");
+  const [hasHeroImage, setHasHeroImage] = useState(false);
+  const [confidence, setConfidence] = useState(0);
+  const [reasoning, setReasoning] = useState("");
   const [fontMood, setFontMood] = useState("");
   const [provider, setProvider] = useState<"claude" | "openai">("openai");
   const [converting, setConverting] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [useMask, setUseMask] = useState(false);
+  const [maskedImageUri, setMaskedImageUri] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -26,8 +34,13 @@ export default function UploadForm({ onSave, onCancel }: UploadFormProps) {
     reader.onload = () => {
       setImageDataUri(reader.result as string);
       setHtml("");
+      setOverlayHtml("");
+      setHasHeroImage(false);
+      setConfidence(0);
+      setReasoning("");
       setFontMood("");
       setError("");
+      setMaskedImageUri(null);
     };
     reader.readAsDataURL(file);
   }
@@ -49,10 +62,15 @@ export default function UploadForm({ onSave, onCancel }: UploadFormProps) {
     setConverting(true);
     setError("");
     try {
-      const blob = await (await fetch(imageDataUri)).blob();
+      // 마스크가 있으면 마스크된 이미지(디자인만 보이는 이미지)를 전송
+      const imageToSend = useMask && maskedImageUri ? maskedImageUri : imageDataUri;
+      const blob = await (await fetch(imageToSend)).blob();
       const form = new FormData();
       form.append("image", blob, "reference.png");
       form.append("provider", provider);
+      if (useMask && maskedImageUri) {
+        form.append("masked", "true");
+      }
       const res = await fetch("/api/design/image-to-code", {
         method: "POST",
         body: form,
@@ -62,9 +80,39 @@ export default function UploadForm({ onSave, onCancel }: UploadFormProps) {
         setError(errData?.error ?? `변환 실패 (${String(res.status)})`);
         return;
       }
-      const data = (await res.json()) as { html: string; fontMood?: string };
+      const data = (await res.json()) as {
+        html: string;
+        fontMood?: string;
+        hasHeroImage?: boolean;
+        overlayHtml?: string;
+        confidence?: number;
+        reasoning?: string;
+        opacityRatio?: number; // 0-100, 오버레이 불투명도(%)
+        fallback?: boolean;
+      };
+      // 이미지와 디자인 코드를 분리하여 저장
+      // overlayHtml: 디자인 오버레이만 (배경 사진 제외)
+      // html: 합성된 전체 HTML (미리보기용)
+      if (data.hasHeroImage && data.overlayHtml) {
+        setOverlayHtml(data.overlayHtml);
+        setHasHeroImage(true);
+      } else {
+        setOverlayHtml("");
+        setHasHeroImage(false);
+      }
+      setConfidence(data.confidence ?? 0);
+      setReasoning(data.reasoning ?? "");
       setHtml(data.html);
       setFontMood(data.fontMood ?? "bold-display");
+      // 서버에서 불투명도 검증으로 분리가 무효화된 경우 안내
+      if (data.opacityRatio != null && data.opacityRatio > 75 && !data.hasHeroImage) {
+        setReasoning(
+          `오버레이 불투명도 ${String(data.opacityRatio)}% — 배경이 재현되어 전체 모드로 전환됨`,
+        );
+      }
+      if (data.fallback) {
+        setError("JSON 파싱 실패로 전체 모드로 처리되었습니다");
+      }
     } catch {
       setError("변환 중 오류가 발생했습니다");
     } finally {
@@ -72,19 +120,30 @@ export default function UploadForm({ onSave, onCancel }: UploadFormProps) {
     }
   }
 
-  function handleSave() {
+  async function handleSave() {
     if (!title.trim() || !imageDataUri || !html) return;
-    onSave({
-      title,
-      category,
-      imageDataUri,
-      html,
-      fontMood,
-    });
+    setSaving(true);
+    setError("");
+    try {
+      // DB에는 디자인 코드만 저장 (이미지 base64가 html에 포함되지 않도록)
+      // hasHeroImage인 경우 overlayHtml(디자인만), 아닌 경우 전체 html
+      const codeToSave = hasHeroImage && overlayHtml ? overlayHtml : html;
+      await onSave({
+        title,
+        category,
+        imageDataUri,
+        html: codeToSave,
+        fontMood,
+      });
+    } catch {
+      setError("저장에 실패했습니다. 다시 시도해주세요.");
+    } finally {
+      setSaving(false);
+    }
   }
 
-  const canConvert = !!imageDataUri && !converting;
-  const canSave = !!title.trim() && !!imageDataUri && !!html;
+  const canConvert = !!imageDataUri && !converting && !saving;
+  const canSave = !!title.trim() && !!imageDataUri && !!html && !saving;
 
   return (
     <div style={s.panel}>
@@ -119,6 +178,29 @@ export default function UploadForm({ onSave, onCancel }: UploadFormProps) {
           style={{ display: "none" }}
         />
       </div>
+
+      {/* Image mask editor */}
+      {imageDataUri && (
+        <div style={s.regionSection}>
+          <label style={s.regionToggle}>
+            <input
+              type="checkbox"
+              checked={useMask}
+              onChange={(e) => {
+                setUseMask(e.target.checked);
+                if (!e.target.checked) setMaskedImageUri(null);
+              }}
+            />
+            <span>이미지 영역 마스킹</span>
+          </label>
+          {useMask && (
+            <ImageMaskEditor
+              imageDataUri={imageDataUri}
+              onMaskChange={setMaskedImageUri}
+            />
+          )}
+        </div>
+      )}
 
       {/* Title */}
       <label style={s.label}>
@@ -175,10 +257,34 @@ export default function UploadForm({ onSave, onCancel }: UploadFormProps) {
       {html && (
         <div style={s.codeSection}>
           <div style={s.codeLabelRow}>
-            <span style={s.codeLabel}>생성된 코드</span>
-            <span style={s.moodBadge}>{fontMood}</span>
+            <span style={s.codeLabel}>
+              {hasHeroImage ? "디자인 오버레이 코드" : "생성된 코드"}
+            </span>
+            <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+              {hasHeroImage && (
+                <span style={{ ...s.moodBadge, background: "var(--accent-light)", color: "var(--accent)" }}>
+                  이미지 분리됨
+                </span>
+              )}
+              {confidence > 0 && (
+                <span style={{
+                  ...s.moodBadge,
+                  background: confidence >= 0.7 ? "rgba(16,185,129,0.1)" : "rgba(245,158,11,0.1)",
+                  color: confidence >= 0.7 ? "#10B981" : "#F59E0B",
+                }}>
+                  {Math.round(confidence * 100)}%
+                </span>
+              )}
+              <span style={s.moodBadge}>{fontMood}</span>
+            </div>
           </div>
-          <pre style={s.codeBlock}>{html.slice(0, 500)}{html.length > 500 ? "\n..." : ""}</pre>
+          {reasoning && (
+            <p style={s.reasoning}>{reasoning}</p>
+          )}
+          <pre style={s.codeBlock}>
+            {(hasHeroImage && overlayHtml ? overlayHtml : html).slice(0, 500)}
+            {(hasHeroImage && overlayHtml ? overlayHtml : html).length > 500 ? "\n..." : ""}
+          </pre>
         </div>
       )}
 
@@ -191,9 +297,9 @@ export default function UploadForm({ onSave, onCancel }: UploadFormProps) {
           type="button"
           style={{ ...s.saveBtn, opacity: canSave ? 1 : 0.4 }}
           disabled={!canSave}
-          onClick={handleSave}
+          onClick={() => void handleSave()}
         >
-          저장
+          {saving ? "저장 중..." : "저장"}
         </button>
       </div>
     </div>
@@ -270,6 +376,22 @@ const s = {
     display: "block",
   } as React.CSSProperties,
 
+  regionSection: {
+    display: "flex",
+    flexDirection: "column" as const,
+    gap: "8px",
+  } as React.CSSProperties,
+
+  regionToggle: {
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+    fontSize: "12px",
+    fontWeight: 500,
+    color: "var(--text-muted)",
+    cursor: "pointer",
+  } as React.CSSProperties,
+
   label: {
     display: "flex",
     flexDirection: "column" as const,
@@ -343,6 +465,14 @@ const s = {
     borderRadius: "6px",
     background: "var(--bg-input)",
     color: "var(--text-muted)",
+  } as React.CSSProperties,
+
+  reasoning: {
+    fontSize: "11px",
+    color: "var(--text-muted)",
+    lineHeight: 1.4,
+    margin: 0,
+    fontStyle: "italic" as const,
   } as React.CSSProperties,
 
   codeBlock: {
