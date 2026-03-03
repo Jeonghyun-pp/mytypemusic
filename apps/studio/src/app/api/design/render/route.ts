@@ -185,6 +185,18 @@ export async function POST(req: Request) {
   const rawHtml = (body as Record<string, unknown>).rawHtml;
   if (typeof rawHtml === "string" && rawHtml.trim()) {
     html = jsxToHtml(rawHtml);
+
+    // heroImageDataUri가 있으면 root element 첫 번째 자식으로 주입
+    const heroUri = (body as Record<string, unknown>).heroImageDataUri;
+    if (typeof heroUri === "string" && heroUri.trim()) {
+      const w = canvasWidth ?? 1080;
+      const h = canvasHeight ?? 1350;
+      const heroImg = `<img src="${heroUri}" style="position:absolute;top:0;left:0;width:${String(w)}px;height:${String(h)}px;display:block;" />`;
+      const firstClose = html.indexOf(">");
+      if (firstClose > -1) {
+        html = html.slice(0, firstClose + 1) + heroImg + html.slice(firstClose + 1);
+      }
+    }
   } else {
     // ── Template mode: 기존 로직 ────────────────────────
     const parsed = SlideSpecSchema.safeParse((body as Record<string, unknown>).slide);

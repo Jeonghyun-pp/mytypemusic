@@ -655,7 +655,7 @@ export default function DesignEditor({ projectId, initialSpec, onAutoSave }: Des
       for (let i = 0; i < spec.slides.length; i++) {
         const slide = spec.slides[i]!;
         const fetchBody = slide.customHtml
-          ? { rawHtml: slide.customHtml, fontMood: spec.fontMood, canvasSize: spec.canvasSize }
+          ? { rawHtml: slide.customHtml, heroImageDataUri: slide.heroImageDataUri, fontMood: spec.fontMood, canvasSize: spec.canvasSize }
           : { slide, globalStyle: spec.globalStyle, fontMood: spec.fontMood, canvasSize: spec.canvasSize };
         const res = await fetch("/api/design/render", {
           method: "POST",

@@ -94,7 +94,7 @@ export default function PreviewPanel({ slide, globalStyle, rawHtml, fontMood, ca
         };
       } else {
         const basePayload = rawHtml
-          ? { rawHtml, fontMood, canvasSize }
+          ? { rawHtml, heroImageDataUri: slide.heroImageDataUri, fontMood, canvasSize }
           : { slide, globalStyle, fontMood, canvasSize };
         payload = {
           ...basePayload,
