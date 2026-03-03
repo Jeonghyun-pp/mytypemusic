@@ -1,26 +1,52 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import type { PlanItem } from "@/lib/studio/plan/types";
 import { useProjectStore } from "./projectStore";
 import ProjectCard from "./ProjectCard";
+import PlanItemPicker from "./PlanItemPicker";
 
 type FilterTab = "all" | "draft" | "completed";
 
 export default function ProjectBrowser() {
   const router = useRouter();
-  const { projects, loading, fetchProjects, createProject, deleteProject } = useProjectStore();
+  const { projects, loading, createProject, deleteProject } = useProjectStore();
   const [filter, setFilter] = useState<FilterTab>("all");
   const [creating, setCreating] = useState(false);
+  const [showPicker, setShowPicker] = useState(false);
 
   const filteredProjects = filter === "all"
     ? projects
     : projects.filter((p) => p.status === filter);
 
-  const handleNewProject = useCallback(async () => {
+  // Collect planItemIds already linked to existing projects
+  const linkedPlanItemIds = useMemo(
+    () => new Set(projects.map((p) => p.planItemId).filter(Boolean) as string[]),
+    [projects],
+  );
+
+  // Create blank project (no plan item)
+  const handleCreateBlank = useCallback(async () => {
+    setShowPicker(false);
     setCreating(true);
     try {
       const project = await createProject();
+      router.push(`/studio/design?project=${project.id}`);
+    } catch { /* ignore */ }
+    setCreating(false);
+  }, [createProject, router]);
+
+  // Create project from a selected plan item
+  const handleSelectPlanItem = useCallback(async (item: PlanItem) => {
+    setShowPicker(false);
+    setCreating(true);
+    try {
+      const project = await createProject({
+        title: item.title,
+        category: item.category,
+        planItemId: item.id,
+      });
       router.push(`/studio/design?project=${project.id}`);
     } catch { /* ignore */ }
     setCreating(false);
@@ -52,7 +78,7 @@ export default function ProjectBrowser() {
           <button
             type="button"
             style={s.newBtn}
-            onClick={() => void handleNewProject()}
+            onClick={() => setShowPicker(true)}
             disabled={creating}
           >
             {creating ? "생성 중..." : "+ 새 프로젝트"}
@@ -102,6 +128,16 @@ export default function ProjectBrowser() {
             </div>
           ))}
         </div>
+      )}
+
+      {/* Plan item picker modal */}
+      {showPicker && (
+        <PlanItemPicker
+          linkedPlanItemIds={linkedPlanItemIds}
+          onSelect={(item) => void handleSelectPlanItem(item)}
+          onSkip={() => void handleCreateBlank()}
+          onClose={() => setShowPicker(false)}
+        />
       )}
     </div>
   );

@@ -107,6 +107,14 @@ export default function ProjectEditorWrapper({ projectId }: ProjectEditorWrapper
     } catch { /* ignore */ }
   }, [projectId]);
 
+  const handleDelete = useCallback(async () => {
+    if (!confirm("이 프로젝트를 삭제하시겠습니까?")) return;
+    try {
+      const res = await fetch(`/api/db/projects/${projectId}`, { method: "DELETE" });
+      if (res.ok) router.push("/studio/design");
+    } catch { /* ignore */ }
+  }, [projectId, router]);
+
   if (loading) {
     return <div style={s.loading}>프로젝트 불러오는 중...</div>;
   }
@@ -139,6 +147,13 @@ export default function ProjectEditorWrapper({ projectId }: ProjectEditorWrapper
         </span>
         {saving && <span style={s.savingIndicator}>저장 중...</span>}
         <div style={s.spacer} />
+        <button
+          type="button"
+          style={s.deleteBtn}
+          onClick={() => void handleDelete()}
+        >
+          삭제
+        </button>
         {project.status === "draft" ? (
           <button
             type="button"
@@ -223,6 +238,18 @@ const s = {
   } as React.CSSProperties,
 
   spacer: { flex: 1 } as React.CSSProperties,
+
+  deleteBtn: {
+    padding: "6px 16px",
+    borderRadius: "8px",
+    border: "none",
+    background: "rgba(239,68,68,0.08)",
+    color: "var(--red, #ef4444)",
+    fontSize: "12px",
+    fontWeight: 500,
+    cursor: "pointer",
+    transition: "all var(--transition)",
+  } as React.CSSProperties,
 
   completeBtn: {
     padding: "6px 16px",
