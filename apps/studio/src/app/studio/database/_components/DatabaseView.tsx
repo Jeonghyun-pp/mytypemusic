@@ -7,9 +7,10 @@ import EntryCard from "./EntryCard";
 import EntryDetail from "./EntryDetail";
 import UploadForm from "./UploadForm";
 import MoodSearchView from "./MoodSearchView";
+import SpotifySearchView from "./SpotifySearchView";
 
 type PanelMode = "browse" | "upload" | "detail";
-type ViewTab = "references" | "mood-search";
+type ViewTab = "references" | "mood-search" | "spotify";
 
 export default function DatabaseView() {
   const store = useDesignDatabase();
@@ -32,8 +33,8 @@ export default function DatabaseView() {
     setMode("upload");
   }
 
-  function handleSave(entry: Omit<DesignEntry, "id" | "createdAt">) {
-    store.addEntry(entry);
+  async function handleSave(entry: Omit<DesignEntry, "id" | "createdAt">) {
+    await store.addEntry(entry);
     setMode("browse");
   }
 
@@ -65,6 +66,13 @@ export default function DatabaseView() {
             >
               무드 검색
             </button>
+            <button
+              type="button"
+              style={activeTab === "spotify" ? s.viewTabActive : s.viewTab}
+              onClick={() => setActiveTab("spotify")}
+            >
+              Spotify
+            </button>
           </div>
         </div>
         {activeTab === "references" && (
@@ -88,6 +96,9 @@ export default function DatabaseView() {
 
       {/* Mood Search Tab */}
       {activeTab === "mood-search" && <MoodSearchView />}
+
+      {/* Spotify Tab */}
+      {activeTab === "spotify" && <SpotifySearchView />}
 
       {/* References Tab - Body */}
       {activeTab === "references" && <div style={s.body}>

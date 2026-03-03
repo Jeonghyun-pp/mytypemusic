@@ -305,6 +305,30 @@ export default function DesignEditor() {
       }
     } catch { /* ignore */ }
 
+    // ── Spotify에서 전달된 이미지 로드 ─────────────────
+    try {
+      const spotifyData = localStorage.getItem("studio-spotify-load");
+      if (spotifyData) {
+        localStorage.removeItem("studio-spotify-load");
+        const parsed = JSON.parse(spotifyData) as {
+          heroImageDataUri?: string;
+          footerText?: string;
+        };
+        if (parsed.heroImageDataUri) {
+          setSpec((prev) => {
+            const slides = [...prev.slides];
+            slides[prev.currentSlideIndex] = {
+              ...slides[prev.currentSlideIndex]!,
+              heroImageDataUri: parsed.heroImageDataUri,
+              footerText: parsed.footerText ?? slides[prev.currentSlideIndex]!.footerText,
+            };
+            return { ...prev, slides };
+          });
+          return; // skip normal restore
+        }
+      }
+    } catch { /* ignore */ }
+
     // ── localStorage에서 복원 (hydration 이후) ──────────
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
