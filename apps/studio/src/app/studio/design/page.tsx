@@ -10,13 +10,15 @@ function DesignPageInner() {
   const searchParams = useSearchParams();
   const projectId = searchParams.get("project");
   const quick = searchParams.get("quick");
+  const topic = searchParams.get("topic");
+  const carousel = searchParams.get("carousel");
 
   if (projectId) {
     return <ProjectEditorWrapper key={projectId} projectId={projectId} />;
   }
 
-  if (quick) {
-    return <DesignEditor />;
+  if (quick || topic) {
+    return <DesignEditor initialTopic={topic ?? undefined} initialCarousel={carousel ?? undefined} />;
   }
 
   return <ProjectBrowser />;

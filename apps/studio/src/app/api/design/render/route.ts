@@ -277,7 +277,9 @@ export async function POST(req: Request) {
   const hasEffects = effects.shadow !== undefined || effects.blur !== undefined;
 
   // ── Check LRU cache ──────────────────────────────────
-  const cacheKey = hashInput(html + (fontMood ?? "") + (hasEffects ? JSON.stringify(effects) : ""));
+  const cacheKey = hashInput(
+    html + (fontMood ?? "") + `${String(canvasWidth ?? 1080)}x${String(canvasHeight ?? 1350)}` + (hasEffects ? JSON.stringify(effects) : ""),
+  );
   const cached = cacheGet(cacheKey);
   if (cached) {
     const elapsed = Math.round(performance.now() - start);

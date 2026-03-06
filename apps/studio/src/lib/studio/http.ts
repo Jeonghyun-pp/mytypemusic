@@ -13,5 +13,11 @@ export function notFound(message: string): NextResponse {
 }
 
 export function serverError(message: string): NextResponse {
-  return NextResponse.json({ error: message }, { status: 500 });
+  // Strip stack traces and internal details — log full error server-side
+  console.error("[serverError]", message);
+  const safeMessage =
+    process.env.NODE_ENV === "development"
+      ? message
+      : "Internal server error";
+  return NextResponse.json({ error: safeMessage }, { status: 500 });
 }
