@@ -1,9 +1,16 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useCalendarEvents, type CalendarEvent } from "./calendarStore";
 import CalendarGrid from "./CalendarGrid";
 import EventForm from "./EventForm";
+import UnifiedComposer from "../../_components/UnifiedComposer";
+
+function toScheduleValue(dateStr: string) {
+  // Convert "YYYY-MM-DD" to datetime-local value at 18:00 (default evening post)
+  return `${dateStr}T18:00`;
+}
 
 export default function CalendarView() {
   const now = new Date();
@@ -11,6 +18,7 @@ export default function CalendarView() {
   const [currentMonth, setCurrentMonth] = useState(now.getMonth() + 1); // 1-12
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
+  const [composerOpen, setComposerOpen] = useState(false);
 
   const store = useCalendarEvents();
 
@@ -79,6 +87,33 @@ export default function CalendarView() {
           />
         </div>
         <div style={styles.sidePanel}>
+          {/* Quick create buttons when a date is selected */}
+          {selectedDate && (
+            <div style={styles.quickCreate}>
+              <span style={styles.quickLabel}>빠른 제작</span>
+              <div style={styles.quickBtns}>
+                <button
+                  style={styles.quickBtn}
+                  onClick={() => setComposerOpen(true)}
+                >
+                  빠른 포스트
+                </button>
+                <Link
+                  href={`/studio/design?scheduleDate=${selectedDate}`}
+                  style={styles.quickBtn}
+                >
+                  카드뉴스
+                </Link>
+                <Link
+                  href={`/studio/blog?scheduleDate=${selectedDate}`}
+                  style={styles.quickBtn}
+                >
+                  블로그
+                </Link>
+              </div>
+            </div>
+          )}
+
           <EventForm
             selectedDate={selectedDate}
             events={store.events}
@@ -93,6 +128,12 @@ export default function CalendarView() {
           />
         </div>
       </div>
+
+      <UnifiedComposer
+        open={composerOpen}
+        onClose={() => setComposerOpen(false)}
+        initialSchedule={selectedDate ? toScheduleValue(selectedDate) : ""}
+      />
     </div>
   );
 }
@@ -165,5 +206,45 @@ const styles = {
   sidePanel: {
     width: "320px",
     flexShrink: 0,
+    display: "flex",
+    flexDirection: "column" as const,
+    gap: "12px",
+  } as React.CSSProperties,
+
+  quickCreate: {
+    display: "flex",
+    flexDirection: "column" as const,
+    gap: "8px",
+    padding: "16px",
+    background: "var(--bg-card)",
+    borderRadius: "var(--radius-xl)",
+    border: "1px solid var(--border-light)",
+    boxShadow: "var(--shadow-card)",
+  } as React.CSSProperties,
+
+  quickLabel: {
+    fontSize: "12px",
+    fontWeight: 600,
+    color: "var(--text-muted)",
+  } as React.CSSProperties,
+
+  quickBtns: {
+    display: "flex",
+    gap: "6px",
+  } as React.CSSProperties,
+
+  quickBtn: {
+    flex: 1,
+    padding: "9px 0",
+    borderRadius: "8px",
+    border: "1px solid var(--border-light)",
+    background: "var(--bg-card)",
+    color: "var(--text)",
+    fontSize: "12px",
+    fontWeight: 600,
+    cursor: "pointer",
+    textAlign: "center" as const,
+    textDecoration: "none",
+    transition: "all 0.15s",
   } as React.CSSProperties,
 };

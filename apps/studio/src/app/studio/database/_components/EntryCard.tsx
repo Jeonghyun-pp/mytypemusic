@@ -4,7 +4,7 @@ import { CONTENT_CATEGORIES } from "@/lib/studio/contentCategories";
 import type { DesignEntry } from "./databaseStore";
 
 const CATEGORY_COLORS: Record<string, string> = {
-  "scene-news": "#3B82F6",
+  "scene-news": "#3DA66E",
   "live-experience": "#EF4444",
   "artist-deep-dive": "#8B5CF6",
   "playlist": "#EC4899",

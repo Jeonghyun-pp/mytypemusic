@@ -1,15 +1,17 @@
 "use client";
 
+import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import type { PlanItem } from "@/lib/studio/plan/types";
 
 const TYPE_COLORS: Record<string, { bg: string; text: string }> = {
-  post: { bg: "rgba(59,130,246,0.12)", text: "#3b82f6" },
+  post: { bg: "rgba(61,166,110,0.12)", text: "#3DA66E" },
   reels: { bg: "rgba(147,51,234,0.12)", text: "#9333ea" },
   promotion: { bg: "rgba(234,179,8,0.12)", text: "#b8860b" },
 };
 
 const CATEGORY_COLORS: Record<string, string> = {
-  "scene-news": "#3b82f6",
+  "scene-news": "#3DA66E",
   "live-experience": "#ef4444",
   "artist-deep-dive": "#8b5cf6",
   "playlist": "#10b981",
@@ -34,8 +36,22 @@ export default function PlanItemRow({
   onAddToCalendar,
   onRemoveFromCalendar,
 }: PlanItemRowProps) {
-  const typeColor = TYPE_COLORS[item.type] ?? { bg: "rgba(59,130,246,0.12)", text: "#3b82f6" };
+  const router = useRouter();
+  const typeColor = TYPE_COLORS[item.type] ?? { bg: "rgba(61,166,110,0.12)", text: "#3DA66E" };
   const catColor = CATEGORY_COLORS[item.category] ?? "#888";
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    function handleClickOutside(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [menuOpen]);
+
+  const encodedTopic = encodeURIComponent(item.title);
 
   return (
     <div
@@ -63,6 +79,24 @@ export default function PlanItemRow({
           </span>
           <span style={styles.categoryLabel}>{item.category}</span>
         </div>
+      </div>
+
+      {/* Create button with dropdown */}
+      <div ref={menuRef} style={{ position: "relative", flexShrink: 0 }}>
+        <button
+          style={styles.createBtn}
+          onClick={(e) => { e.stopPropagation(); setMenuOpen(!menuOpen); }}
+          title="만들기"
+        >
+          →
+        </button>
+        {menuOpen && (
+          <div style={styles.dropdown}>
+            <button style={styles.dropItem} onClick={(e) => { e.stopPropagation(); router.push(`/studio/design?quick=1&topic=${encodedTopic}`); }}>카드뉴스</button>
+            <button style={styles.dropItem} onClick={(e) => { e.stopPropagation(); router.push(`/studio/blog?topic=${encodedTopic}`); }}>블로그</button>
+            <button style={styles.dropItem} onClick={(e) => { e.stopPropagation(); router.push(`/studio/publish?text=${encodedTopic}`); }}>포스트</button>
+          </div>
+        )}
       </div>
 
       {/* Toggle calendar button */}
@@ -171,5 +205,52 @@ const styles = {
     background: "var(--green)",
     color: "#fff",
     borderColor: "var(--green)",
+  } as React.CSSProperties,
+
+  createBtn: {
+    width: "32px",
+    height: "32px",
+    borderRadius: "10px",
+    borderWidth: "1px",
+    borderStyle: "solid",
+    borderColor: "var(--border-light)",
+    background: "var(--bg-card)",
+    color: "var(--accent)",
+    fontSize: "14px",
+    fontWeight: 600,
+    cursor: "pointer",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+    transition: "all var(--transition)",
+  } as React.CSSProperties,
+
+  dropdown: {
+    position: "absolute" as const,
+    top: "100%",
+    right: 0,
+    marginTop: 4,
+    background: "var(--bg-card)",
+    border: "1px solid var(--border-light)",
+    borderRadius: 8,
+    boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+    zIndex: 50,
+    overflow: "hidden",
+    minWidth: 100,
+  } as React.CSSProperties,
+
+  dropItem: {
+    display: "block",
+    width: "100%",
+    padding: "8px 14px",
+    border: "none",
+    background: "none",
+    color: "var(--text)",
+    fontSize: 12,
+    fontWeight: 500,
+    cursor: "pointer",
+    textAlign: "left" as const,
+    transition: "background 0.1s",
   } as React.CSSProperties,
 };

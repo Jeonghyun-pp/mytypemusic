@@ -238,10 +238,10 @@ const s = {
   rowType: {
     fontSize: "10px",
     fontWeight: 600,
-    color: "#3b82f6",
+    color: "#3DA66E",
     padding: "1px 6px",
     borderRadius: "4px",
-    background: "rgba(59,130,246,0.1)",
+    background: "rgba(61,166,110,0.1)",
     textTransform: "uppercase" as const,
   } as React.CSSProperties,
 

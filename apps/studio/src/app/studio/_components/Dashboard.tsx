@@ -1,14 +1,18 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import Link from "next/link";
 import { useCalendarEvents, type CalendarEvent } from "../calendar/_components/calendarStore";
 import { CONTENT_CATEGORIES } from "@/lib/studio/contentCategories";
+import AiSuggestions from "./AiSuggestions";
+import PipelineStatus from "./PipelineStatus";
+import OnboardingWizard from "./OnboardingWizard";
+import UnifiedComposer from "./UnifiedComposer";
 
 // ── Helpers ──────────────────────────────────────────
 
 const TYPE_COLORS: Record<string, string> = {
-  post: "#3B82F6",
+  post: "#3DA66E",
   reels: "#8B5CF6",
   promotion: "#F59E0B",
 };
@@ -49,7 +53,7 @@ function EventCard({ event }: { event: CalendarEvent }) {
   const catLabel = getCategoryLabel(event.category);
 
   return (
-    <div style={s.card}>
+    <div className="card-hover" style={s.card}>
       <div style={s.cardTop}>
         <span style={{ ...s.typeBadge, background: typeColor }}>
           {event.type}
@@ -120,6 +124,21 @@ const NAV_ITEMS = [
 
 export default function Dashboard() {
   const { events } = useCalendarEvents();
+  const [accountCount, setAccountCount] = useState<number | null>(null);
+  const [skipped, setSkipped] = useState(false);
+  const [composerOpen, setComposerOpen] = useState(false);
+  const [composerText, setComposerText] = useState("");
+  const [composerHashtags, setComposerHashtags] = useState("");
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && localStorage.getItem("onboarding-skipped") === "1") {
+      setSkipped(true);
+    }
+    fetch("/api/sns/accounts")
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data: unknown[]) => setAccountCount(data.length))
+      .catch(() => setAccountCount(0));
+  }, []);
 
   const { today, tomorrow, thisWeek, todayStr, tomorrowStr } = useMemo(() => {
     const now = new Date();
@@ -160,9 +179,20 @@ export default function Dashboard() {
   const pendingCount = events.filter((e) => e.status !== "published").length;
   const now = new Date();
 
+  // Show onboarding wizard when no accounts connected (unless skipped)
+  if (accountCount === 0 && !skipped) {
+    return (
+      <div style={s.wrapper}>
+        <OnboardingWizard onSkip={() => setSkipped(true)} />
+      </div>
+    );
+  }
+
+  const weekEvents = [...tomorrow, ...thisWeek];
+
   return (
-    <div style={s.wrapper}>
-      {/* Header */}
+    <div className="animate-stagger" style={s.wrapper}>
+      {/* 1. 오늘 할 일 — 가장 급한 것 먼저 */}
       <div style={s.header}>
         <div>
           <h2 style={s.greeting}>
@@ -177,7 +207,8 @@ export default function Dashboard() {
         </Link>
       </div>
 
-      {/* Event Sections */}
+      <PipelineStatus />
+
       {events.length === 0 ? (
         <div style={s.emptyAll}>
           <p style={s.emptyAllTitle}>등록된 일정이 없습니다</p>
@@ -189,44 +220,54 @@ export default function Dashboard() {
           </Link>
         </div>
       ) : (
-        <>
-          <Section
-            title="오늘"
-            count={today.length}
-            events={today}
-            emptyText="오늘 일정이 없습니다"
-          />
-          <Section
-            title="내일"
-            count={tomorrow.length}
-            events={tomorrow}
-            emptyText="내일 일정이 없습니다"
-          />
-          {thisWeek.length > 0 && (
-            <Section
-              title="이번 주 남은 일정"
-              count={thisWeek.length}
-              events={thisWeek}
-              emptyText=""
-            />
-          )}
-        </>
+        <Section
+          title="오늘"
+          count={today.length}
+          events={today}
+          emptyText="오늘 일정이 없습니다"
+        />
       )}
 
-      {/* Quick Nav */}
+      {/* 2. AI 제안 — 다음에 뭘 만들까 */}
+      <AiSuggestions
+        onQuickPost={(text, hashtags) => {
+          setComposerText(text);
+          setComposerHashtags(hashtags);
+          setComposerOpen(true);
+        }}
+      />
+
+      {/* 3. 이번 주 캘린더 미니뷰 */}
+      {weekEvents.length > 0 && (
+        <Section
+          title="이번 주 남은 일정"
+          count={weekEvents.length}
+          events={weekEvents}
+          emptyText=""
+        />
+      )}
+
+      {/* 4. 빠른 이동 */}
       <div style={s.section}>
         <div style={s.sectionHeader}>
           <span style={s.sectionTitle}>빠른 이동</span>
         </div>
         <div style={s.navGrid}>
           {NAV_ITEMS.map((item) => (
-            <Link key={item.href} href={item.href} style={s.navCard}>
+            <Link key={item.href} href={item.href} className="card-hover" style={s.navCard}>
               <span style={s.navLabel}>{item.label}</span>
               <span style={s.navDesc}>{item.desc}</span>
             </Link>
           ))}
         </div>
       </div>
+
+      <UnifiedComposer
+        open={composerOpen}
+        onClose={() => setComposerOpen(false)}
+        initialText={composerText}
+        initialHashtags={composerHashtags}
+      />
     </div>
   );
 }

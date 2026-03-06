@@ -6,12 +6,14 @@ import type { DesignSpec, SlideSpec, SlideStyleOverrides, AiDesignAction, FontMo
 import type { Layer, LayerKind } from "@/lib/studio/designEditor/layerTypes";
 import { createDefaultDesignSpec } from "@/lib/studio/designEditor/defaultSlides";
 import { applyActions } from "@/lib/studio/designEditor/applyActions";
+import { generateHtmlFromSlide } from "@/lib/studio/designEditor/generateHtml";
 import { CONTENT_CATEGORIES } from "@/lib/studio/contentCategories";
 import ControlPanel from "./ControlPanel";
 import PreviewPanel from "./PreviewPanel";
 import LayerCanvas from "./LayerCanvas";
 import SlideNavigation from "./SlideNavigation";
 import CanvasSizeSelector from "./CanvasSizeSelector";
+import QuickPublishPanel from "../../_components/QuickPublishPanel";
 
 const STORAGE_KEY = "design-editor-spec";
 const MAX_UNDO = 50;
@@ -141,6 +143,38 @@ const s = {
     flex: 1,
     minHeight: 0,
   } as const,
+  publishSidebar: {
+    width: "300px",
+    flexShrink: 0,
+    borderLeft: "1px solid var(--border-light)",
+    background: "var(--bg-card)",
+    overflowY: "auto" as const,
+    padding: "16px",
+    display: "flex",
+    flexDirection: "column" as const,
+    gap: "12px",
+  } as const,
+  publishHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingBottom: "8px",
+    borderBottom: "1px solid var(--border-light)",
+  } as const,
+  publishThumbs: {
+    display: "flex",
+    gap: "6px",
+    overflowX: "auto" as const,
+    paddingBottom: "4px",
+  } as const,
+  publishThumb: {
+    width: "56px",
+    height: "70px",
+    objectFit: "cover" as const,
+    borderRadius: "6px",
+    border: "1px solid var(--border-light)",
+    flexShrink: 0,
+  } as const,
 };
 
 // ── Reference sites dropdown ────────────────────────────
@@ -222,12 +256,30 @@ interface DesignEditorProps {
   projectId?: string;
   initialSpec?: DesignSpec;
   onAutoSave?: (spec: DesignSpec) => void;
+  initialTopic?: string;
+  initialCarousel?: string;
 }
 
-export default function DesignEditor({ projectId, initialSpec, onAutoSave }: DesignEditorProps = {}) {
+export default function DesignEditor({ projectId, initialSpec, onAutoSave, initialTopic, initialCarousel }: DesignEditorProps = {}) {
   const [spec, setSpec] = useState<DesignSpec>(() => initialSpec ?? createDefaultDesignSpec());
   const [downloading, setDownloading] = useState(false);
   const [category, setCategory] = useState("");
+
+  // Pre-fill first slide with topic + carousel concept from AI suggestion
+  useEffect(() => {
+    if (!initialTopic && !initialCarousel) return;
+    setSpec((prev) => {
+      const slides = [...prev.slides];
+      if (slides[0]) {
+        slides[0] = {
+          ...slides[0],
+          ...(initialTopic ? { title: initialTopic } : {}),
+          ...(initialCarousel ? { subtitle: initialCarousel } : {}),
+        };
+      }
+      return { ...prev, slides };
+    });
+  }, [initialTopic, initialCarousel]);
 
   // ── Undo / Redo ──────────────────────────────────────
   const undoStack = useRef<DesignSpec[]>([]);
@@ -692,6 +744,67 @@ export default function DesignEditor({ projectId, initialSpec, onAutoSave }: Des
     }
   }, [spec]);
 
+  // ── Inline publish panel ──────────────────────────────
+  const [showPublish, setShowPublish] = useState(false);
+  const [publishMediaUrls, setPublishMediaUrls] = useState<string[]>([]);
+  const [renderingForPublish, setRenderingForPublish] = useState(false);
+
+  const publishText = useMemo(() => {
+    return spec.slides
+      .map((sl) => [sl.title, sl.bodyText].filter(Boolean).join("\n"))
+      .filter(Boolean)
+      .join("\n\n");
+  }, [spec.slides]);
+
+  const handleTogglePublish = useCallback(async () => {
+    if (showPublish) {
+      setShowPublish(false);
+      return;
+    }
+
+    // Render all slides as PNG
+    setRenderingForPublish(true);
+    setShowPublish(true);
+    try {
+      const urls: string[] = [];
+      for (const slide of spec.slides) {
+        const fetchBody = slide.customHtml
+          ? { rawHtml: slide.customHtml, heroImageDataUri: slide.heroImageDataUri, fontMood: spec.fontMood, canvasSize: spec.canvasSize, heroImageFit: spec.heroImageFit }
+          : slide.layers && slide.layers.length > 0
+            ? { layers: slide.layers, background: spec.globalStyle?.bgGradient ?? "#FFFFFF", fontMood: spec.fontMood, canvasSize: spec.canvasSize }
+            : { slide, globalStyle: spec.globalStyle, fontMood: spec.fontMood, canvasSize: spec.canvasSize, heroImageFit: spec.heroImageFit };
+        try {
+          const res = await fetch("/api/design/render", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(fetchBody),
+          });
+          if (res.ok) {
+            const data = (await res.json()) as { png: string };
+            urls.push(data.png);
+          }
+        } catch {
+          // skip failed slide
+        }
+      }
+      setPublishMediaUrls(urls);
+    } finally {
+      setRenderingForPublish(false);
+    }
+  }, [showPublish, spec]);
+
+  const [figmaCopied, setFigmaCopied] = useState(false);
+  const handleFigmaExport = useCallback(async () => {
+    const allHtml = spec.slides.map((slide) => {
+      if (slide.customHtml) return slide.customHtml;
+      return generateHtmlFromSlide(slide, spec.globalStyle);
+    }).join("\n\n<!-- slide break -->\n\n");
+
+    await navigator.clipboard.writeText(allHtml);
+    setFigmaCopied(true);
+    setTimeout(() => setFigmaCopied(false), 3000);
+  }, [spec]);
+
   return (
     <div style={s.outer}>
       <div style={s.header}>
@@ -745,6 +858,27 @@ export default function DesignEditor({ projectId, initialSpec, onAutoSave }: Des
           >
             {downloading ? "다운로드 중..." : `PNG 다운로드 (${String(spec.slides.length)}장)`}
           </button>
+          <button
+            type="button"
+            style={{ ...s.downloadBtn, background: figmaCopied ? "#10b981" : "var(--bg-input)", color: figmaCopied ? "#fff" : "var(--text)" }}
+            onClick={() => void handleFigmaExport()}
+            title="HTML을 복사한 후 Figma에서 html.to.design 플러그인으로 붙여넣기"
+          >
+            {figmaCopied ? "HTML 복사됨!" : "Figma 내보내기"}
+          </button>
+          <button
+            type="button"
+            style={{
+              ...s.downloadBtn,
+              background: showPublish ? "#2E8D5A" : "#3DA66E",
+              color: "#fff",
+              opacity: renderingForPublish ? 0.5 : 1,
+            }}
+            onClick={() => void handleTogglePublish()}
+            disabled={renderingForPublish}
+          >
+            {renderingForPublish ? "렌더링 중..." : showPublish ? "발행 닫기" : "SNS 발행"}
+          </button>
         </div>
       </div>
 
@@ -787,6 +921,47 @@ export default function DesignEditor({ projectId, initialSpec, onAutoSave }: Des
             heroImageFit={spec.heroImageFit}
             effects={previewEffects}
           />
+        )}
+
+        {showPublish && (
+          <div style={s.publishSidebar}>
+            <div style={s.publishHeader}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>SNS 발행</span>
+              <button
+                type="button"
+                style={{ ...s.iconBtn, width: 28, height: 28, fontSize: 12 }}
+                onClick={() => setShowPublish(false)}
+              >
+                ✕
+              </button>
+            </div>
+
+            {renderingForPublish ? (
+              <div style={{ padding: 20, textAlign: "center" as const, color: "var(--text-muted)", fontSize: 13 }}>
+                슬라이드 렌더링 중...
+              </div>
+            ) : (
+              <>
+                {publishMediaUrls.length > 0 && (
+                  <div style={s.publishThumbs}>
+                    {publishMediaUrls.map((url, i) => (
+                      <img
+                        key={i}
+                        src={url}
+                        alt={`slide ${String(i + 1)}`}
+                        style={s.publishThumb}
+                      />
+                    ))}
+                  </div>
+                )}
+                <QuickPublishPanel
+                  text={publishText}
+                  mediaUrls={publishMediaUrls}
+                  onPublished={() => setShowPublish(false)}
+                />
+              </>
+            )}
+          </div>
         )}
       </div>
 

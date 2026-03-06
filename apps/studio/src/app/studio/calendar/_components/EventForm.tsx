@@ -27,7 +27,7 @@ const STATUSES: { value: EventStatus; label: string }[] = [
 ];
 
 const TYPE_COLORS: Record<string, string> = {
-  post: "#3B82F6",
+  post: "#3DA66E",
   reels: "#8B5CF6",
   promotion: "#F59E0B",
 };

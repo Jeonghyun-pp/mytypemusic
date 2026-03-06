@@ -320,8 +320,8 @@ const styles = {
     fontWeight: 600,
     padding: "3px 10px",
     borderRadius: "8px",
-    background: "rgba(59,130,246,0.12)",
-    color: "#3b82f6",
+    background: "rgba(61,166,110,0.12)",
+    color: "#3DA66E",
     textTransform: "uppercase" as const,
   } as React.CSSProperties,
 

@@ -119,8 +119,8 @@ const s = {
       fontWeight: 600,
       padding: "2px 8px",
       borderRadius: "6px",
-      background: status === "completed" ? "rgba(16,185,129,0.12)" : "rgba(59,130,246,0.12)",
-      color: status === "completed" ? "#10B981" : "#3B82F6",
+      background: status === "completed" ? "rgba(16,185,129,0.12)" : "rgba(61,166,110,0.12)",
+      color: status === "completed" ? "#10B981" : "#3DA66E",
     }) as React.CSSProperties,
 
   chip: (color: string) =>

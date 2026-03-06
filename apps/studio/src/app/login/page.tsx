@@ -96,7 +96,7 @@ export default function LoginPage() {
             padding: "12px",
             borderRadius: "10px",
             border: "none",
-            background: loading || !password ? "#27272a" : "#3b82f6",
+            background: loading || !password ? "#27272a" : "#3DA66E",
             color: loading || !password ? "#71717a" : "#fff",
             fontSize: "14px",
             fontWeight: 600,
