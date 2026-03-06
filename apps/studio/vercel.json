@@ -4,10 +4,6 @@
   "installCommand": "cd ../.. && npm install",
   "crons": [
     {
-      "path": "/api/jobs/process",
-      "schedule": "*/5 * * * *"
-    },
-    {
       "path": "/api/jobs/daily-reset",
       "schedule": "0 15 * * *"
     }
