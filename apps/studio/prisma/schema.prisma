@@ -111,3 +111,562 @@ model BenchmarkReport {
   @@index([createdAt])
   @@map("benchmark_reports")
 }
+
+// ─── Phase 0: Infrastructure ───────────────────────────────
+
+model SnsAccount {
+  id              String    @id @default(uuid())
+  platform        String    // "threads" | "instagram" | "x" | "youtube" | "tiktok" | "linkedin" | "wordpress" | "facebook" | "pinterest" | "telegram"
+  platformUserId  String
+  displayName     String    @default("")
+  profileImageUrl String    @default("")
+  accessToken     String    @db.Text
+  refreshToken    String    @default("") @db.Text
+  tokenExpiresAt  DateTime?
+  scopes          String[]  @default([])
+  isActive        Boolean   @default(true)
+  metadata        Json?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@unique([platform, platformUserId])
+  @@index([platform])
+  @@map("sns_accounts")
+}
+
+model Job {
+  id          String    @id @default(uuid())
+  type        String    // "publish" | "autopilot_scan" | "comment_monitor" | "keyword_scan" | "analytics_collect"
+  status      String    @default("pending") // "pending" | "running" | "completed" | "failed" | "cancelled"
+  priority    Int       @default(0)
+  payload     Json
+  result      Json?
+  error       String?   @db.Text
+  scheduledAt DateTime  @default(now())
+  startedAt   DateTime?
+  completedAt DateTime?
+  retryCount  Int       @default(0)
+  maxRetries  Int       @default(3)
+  createdAt   DateTime  @default(now())
+
+  @@index([status, scheduledAt])
+  @@index([type, status])
+  @@map("jobs")
+}
+
+model CronSchedule {
+  id         String    @id @default(uuid())
+  name       String    @unique
+  cronExpr   String
+  jobType    String
+  jobPayload Json?
+  isActive   Boolean   @default(true)
+  lastRunAt  DateTime?
+  nextRunAt  DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@map("cron_schedules")
+}
+
+model WebhookEvent {
+  id           String    @id @default(uuid())
+  platform     String
+  eventType    String    // "comment" | "dm" | "mention" | "follow"
+  payload      Json
+  processed    Boolean   @default(false)
+  processedAt  DateTime?
+  snsAccountId String?
+  createdAt    DateTime  @default(now())
+
+  @@index([platform, processed])
+  @@index([createdAt])
+  @@map("webhook_events")
+}
+
+// ─── Phase 1: Content Creation Enhancement ─────────────────
+
+model LinkImport {
+  id                 String   @id @default(uuid())
+  urls               String[]
+  commonInstructions String   @default("")
+  status             String   @default("pending") // "pending" | "processing" | "completed" | "failed"
+  results            Json?    // per-URL extraction results
+  generatedPostIds   String[] @default([])
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([status])
+  @@map("link_imports")
+}
+
+model WritingPersona {
+  id               String   @id @default(uuid())
+  name             String
+  creationMethod   String   // "copy" | "analyze" | "manual" | "template"
+  sourceAccountId  String?
+
+  // Identity
+  perspective      String   @default("")  // "1st person plural" | "3rd person" | etc.
+  expertiseAreas   String[] @default([])  // ["K-pop", "indie rock", "vinyl"]
+
+  // Tone
+  tone             Json?    // { formality, humor, emotion, energy }
+  emotionalDrivers String[] @default([])  // Persado-inspired: ["curiosity", "nostalgia"]
+
+  // Vocabulary & Structure
+  vocabulary       Json?    // { level, preferredWords, avoidWords, jargon }
+  structure        Json?    // { avgSentenceLength, paragraphPattern, hookStyle }
+
+  // Content Rules (Jasper/Writer pattern)
+  contentRules     Json?    // { always: string[], never: string[] }
+
+  // Channel-specific profiles (Typeface pattern)
+  channelProfiles  Json?    // { sns: {...}, blog: {...}, carousel: {...} }
+
+  // Golden Examples for few-shot (Copy.ai/Typeface pattern)
+  goldenExamples   Json?    // { sns: string[], blog: string[], review: string[] }
+
+  // Existing fields
+  topicPrefs       Json?    // { preferredTopics, avoidTopics, expertiseAreas }
+  sampleTexts      Json?    // { original: string[], rewritten: string[] }
+  styleFingerprint String   @default("") @db.Text
+  isDefault        Boolean  @default(false)
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@map("writing_personas")
+}
+
+// ─── Phase 2: Publishing Pipeline ──────────────────────────
+
+model Publication {
+  id              String    @id @default(uuid())
+  projectId       String?
+  snsAccountId    String
+  platform        String
+  status          String    @default("draft") // "draft" | "scheduled" | "publishing" | "published" | "failed"
+  scheduledAt     DateTime?
+  publishedAt     DateTime?
+  platformPostId  String?
+  platformPostUrl String?
+  content         Json      // { text, mediaUrls, hashtags, etc. }
+  personaId       String?
+  error           String?   @db.Text
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([status])
+  @@index([scheduledAt])
+  @@index([snsAccountId])
+  @@index([personaId])
+  @@map("publications")
+}
+
+model PostPerformance {
+  id              String   @id @default(uuid())
+  publicationId   String
+  snsAccountId    String
+  platform        String
+  publishedAt     DateTime
+  hourOfDay       Int      // 0-23
+  dayOfWeek       Int      // 0-6
+  views           Int      @default(0)
+  likes           Int      @default(0)
+  comments        Int      @default(0)
+  shares          Int      @default(0)
+  saves           Int      @default(0)
+  engagementRate  Float    @default(0)
+  snapshotAt      DateTime @default(now())
+
+  @@index([snsAccountId, platform])
+  @@index([publishedAt])
+  @@map("post_performance")
+}
+
+// ─── Phase 3: Autopilot ─────────────────────────
+
+model AutopilotConfig {
+  id             String   @id @default(uuid())
+  snsAccountId   String
+  personaId      String?
+  platforms      String[] // e.g. ["threads","instagram"]
+  postsPerDay    Int      @default(1)
+  approvalMode   String   @default("manual") // manual | auto
+  isActive       Boolean  @default(false)
+  topicKeywords  String[] // seed topics
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([snsAccountId])
+  @@map("autopilot_configs")
+}
+
+model AutopilotProposal {
+  id               String   @id @default(uuid())
+  autopilotConfigId String
+  topic            String
+  reasoning        String   @db.Text
+  content          Json     // { text, hashtags, mediaUrls? }
+  platform         String
+  status           String   @default("pending") // pending | approved | rejected | published
+  scheduledAt      DateTime?
+  publishedAt      DateTime?
+  publicationId    String?  // links to Publication after publish
+  personaId        String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([autopilotConfigId])
+  @@index([status])
+  @@map("autopilot_proposals")
+}
+
+// ─── Phase 3: Comment / DM Management ───────────
+
+model IncomingMessage {
+  id            String   @id @default(uuid())
+  snsAccountId  String
+  platform      String
+  externalId    String   // platform-specific message ID
+  parentPostId  String?  // which post this is a comment on
+  senderName    String
+  senderHandle  String
+  messageType   String   @default("comment") // comment | dm | mention
+  body          String   @db.Text
+  classification String? // question | praise | complaint | spam | other
+  sentiment     String?  // positive | neutral | negative
+  priority      String   @default("normal") // low | normal | high | urgent
+  isGoldenTime  Boolean  @default(false) // within engagement window
+  autoReplied   Boolean  @default(false)
+  autoReplyText String?  @db.Text
+  isRead        Boolean  @default(false)
+  receivedAt    DateTime @default(now())
+  processedAt   DateTime?
+
+  @@unique([platform, externalId])
+  @@index([snsAccountId, isRead])
+  @@index([classification])
+  @@map("incoming_messages")
+}
+
+model AutoReplyRule {
+  id            String   @id @default(uuid())
+  snsAccountId  String
+  name          String
+  isActive      Boolean  @default(true)
+  triggerType   String   // classification | keyword | sentiment | all
+  triggerValue  String   // e.g. "question", "감사", "negative"
+  replyTemplate String   @db.Text // supports {{senderName}} variables
+  useAi         Boolean  @default(false) // generate contextual reply with AI
+  aiInstructions String? @db.Text
+  createdAt     DateTime @default(now())
+
+  @@index([snsAccountId])
+  @@map("auto_reply_rules")
+}
+
+// ─── Phase 3: Keyword Campaign ──────────────────
+
+model KeywordCampaign {
+  id             String   @id @default(uuid())
+  snsAccountId   String
+  name           String
+  keywords       String[] // search terms
+  platforms      String[] // target platforms
+  commentMode    String   @default("ai") // ai | template
+  commentTemplate String? @db.Text
+  aiInstructions  String? @db.Text // prompt for AI-generated comments
+  dailyLimit     Int      @default(10)
+  todayCount     Int      @default(0)
+  operatingStart Int      @default(9)  // hour 0-23
+  operatingEnd   Int      @default(22) // hour 0-23
+  minDelaySec    Int      @default(30)
+  maxDelaySec    Int      @default(300)
+  isActive       Boolean  @default(false)
+  tosWarningAcked Boolean @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([snsAccountId])
+  @@map("keyword_campaigns")
+}
+
+model KeywordCommentLog {
+  id              String   @id @default(uuid())
+  campaignId      String
+  platform        String
+  targetPostId    String?  // platform-specific post ID for API calls
+  targetPostUrl   String
+  targetPostText  String?  @db.Text
+  commentText     String   @db.Text
+  status          String   @default("pending") // pending | scheduled | posted | failed | skipped
+  error           String?
+  postedAt        DateTime?
+  createdAt       DateTime @default(now())
+
+  @@index([campaignId])
+  @@index([status])
+  @@map("keyword_comment_logs")
+}
+
+// ─── Phase 4: Analytics + Blog ──────────────────
+
+model AnalyticsSnapshot {
+  id             String   @id @default(uuid())
+  snsAccountId   String
+  platform       String
+  date           DateTime @db.Date
+  followers      Int      @default(0)
+  followersGrowth Int     @default(0)
+  reach          Int      @default(0)
+  impressions    Int      @default(0)
+  engagement     Int      @default(0)
+  engagementRate Float    @default(0)
+  profileViews   Int      @default(0)
+  demographics   Json?    // { age, gender, topCities, topCountries }
+  topPosts       Json?    // [{ postId, text, likes, comments, shares }]
+  createdAt      DateTime @default(now())
+
+  @@unique([snsAccountId, date])
+  @@index([snsAccountId, platform])
+  @@map("analytics_snapshots")
+}
+
+model BlogPost {
+  id           String   @id @default(uuid())
+  title        String
+  slug         String   @unique
+  content      String   @db.Text
+  excerpt      String   @default("") @db.Text
+  seoTitle     String   @default("")
+  seoDescription String @default("") @db.Text
+  seoKeywords  String[] // SEO keywords
+  wordCount    Int      @default(0)
+  status       String   @default("draft") // draft | outlined | drafting | drafted | editing | reviewed | approved | published
+  personaId    String?
+  pipelineRunId String? @unique
+  publishedAt  DateTime?
+  coverImageUrl String?  @db.Text
+  visualAssets  Json?
+  publishedUrl String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  pipelineRun  PipelineRun? @relation(fields: [pipelineRunId], references: [id])
+
+  @@map("blog_posts")
+}
+
+// ─── Music Knowledge Graph ──────────────────────────
+
+model MusicArtist {
+  id              String   @id @default(uuid())
+  name            String
+  nameKo          String   @default("")
+  aliases         String[] @default([])
+  type            String   @default("person") // "person" | "group" | "orchestra"
+  spotifyId       String?  @unique
+  musicBrainzId   String?  @unique
+  genres          String[] @default([])
+  bio             String   @default("") @db.Text
+  bioKo           String   @default("") @db.Text
+  imageUrl        String   @default("")
+  popularity      Int      @default(0)
+  followers       Int      @default(0)
+  activeFrom      String?
+  activeTo        String?
+  country         String   @default("")
+  metadata        Json?
+  lastSyncedAt    DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  albums          MusicAlbum[]
+  relationsFrom   ArtistRelation[] @relation("from")
+  relationsTo     ArtistRelation[] @relation("to")
+
+  @@index([spotifyId])
+  @@index([name])
+  @@map("music_artists")
+}
+
+model MusicAlbum {
+  id              String   @id @default(uuid())
+  title           String
+  titleKo         String   @default("")
+  artistId        String
+  artist          MusicArtist @relation(fields: [artistId], references: [id])
+  spotifyId       String?  @unique
+  musicBrainzId   String?  @unique
+  releaseDate     String?
+  albumType       String   @default("album") // "album" | "single" | "ep" | "compilation"
+  totalTracks     Int      @default(0)
+  label           String   @default("")
+  genres          String[] @default([])
+  imageUrl        String   @default("")
+  popularity      Int      @default(0)
+  avgDanceability Float?
+  avgEnergy       Float?
+  avgValence      Float?
+  avgTempo        Float?
+  metadata        Json?
+  lastSyncedAt    DateTime?
+  createdAt       DateTime @default(now())
+
+  tracks          MusicTrack[]
+
+  @@index([artistId])
+  @@index([releaseDate])
+  @@map("music_albums")
+}
+
+model MusicTrack {
+  id              String   @id @default(uuid())
+  title           String
+  albumId         String
+  album           MusicAlbum @relation(fields: [albumId], references: [id])
+  spotifyId       String?  @unique
+  trackNumber     Int      @default(0)
+  durationMs      Int      @default(0)
+  popularity      Int      @default(0)
+  previewUrl      String?
+  danceability    Float?
+  energy          Float?
+  valence         Float?
+  tempo           Float?
+  acousticness    Float?
+  instrumentalness Float?
+  createdAt       DateTime @default(now())
+
+  @@index([albumId])
+  @@map("music_tracks")
+}
+
+model ArtistRelation {
+  id              String   @id @default(uuid())
+  fromArtistId    String
+  toArtistId      String
+  fromArtist      MusicArtist @relation("from", fields: [fromArtistId], references: [id])
+  toArtist        MusicArtist @relation("to", fields: [toArtistId], references: [id])
+  relationType    String   // "similar_to" | "collaborated_with" | "influenced_by" | "member_of"
+  strength        Float    @default(0.5)
+  source          String   @default("spotify")
+  createdAt       DateTime @default(now())
+
+  @@unique([fromArtistId, toArtistId, relationType])
+  @@index([fromArtistId])
+  @@index([toArtistId])
+  @@map("artist_relations")
+}
+
+model MusicGenre {
+  id              String   @id @default(uuid())
+  name            String   @unique
+  nameKo          String   @default("")
+  parentGenre     String?
+  description     String   @default("")
+  createdAt       DateTime @default(now())
+
+  @@map("music_genres")
+}
+
+// ─── RAG Vector Storage ─────────────────────────────
+
+model ArticleChunk {
+  id              String   @id @default(uuid())
+  content         String   @db.Text
+  embedding       Unsupported("vector(1536)")
+  sourceType      String   // "blog" | "sns" | "carousel" | "review"
+  sourceId        String
+  personaId       String?
+  topics          String[] @default([])
+  artistMentions  String[] @default([])
+  publishedAt     DateTime?
+  chunkIndex      Int      @default(0)
+  createdAt       DateTime @default(now())
+
+  @@index([sourceType])
+  @@index([personaId])
+  @@map("article_chunks")
+}
+
+// ─── Topic Intelligence ─────────────────────────────
+
+model TrendSnapshot {
+  id          String   @id @default(uuid())
+  source      String   // "google" | "youtube" | "naver-datalab" | "naver-news" | "naver-blog" | "hackernews"
+  title       String
+  url         String   @default("")
+  description String   @default("")
+  rank        Int      @default(0)
+  fetchedAt   DateTime @default(now())
+
+  @@index([source, fetchedAt])
+  @@index([title])
+  @@map("trend_snapshots")
+}
+
+model TopicPerformance {
+  id              String    @id @default(uuid())
+  topic           String
+  category        String    @default("") // "album_review" | "artist_profile" | "trend_analysis" | ...
+  articleCount    Int       @default(0)
+  avgEngagement   Float     @default(0)
+  lastPublishedAt DateTime?
+  coolingUntil    DateTime? // don't repeat until this date
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@unique([topic, category])
+  @@map("topic_performance")
+}
+
+// ─── AI Editorial Pipeline ──────────────────────────
+
+model PipelineRun {
+  id              String   @id @default(uuid())
+  topic           String
+  angle           String   @default("")
+  contentType     String   @default("blog") // blog | sns | carousel | review
+  personaId       String?
+  status          String   @default("running") // running | outlined | drafting | drafted | editing | reviewed | approved | failed
+
+  // Pipeline stage outputs
+  outlineJson     Json?
+  researchJson    Json?
+  draftContent    String?  @db.Text
+  editedContent   String?  @db.Text
+
+  // Quality scores (from Editor Agent)
+  qualityScore    Json?    // { factualAccuracy, voiceAlignment, readability, originality, seo, overall, feedback }
+  rewriteCount    Int      @default(0)
+
+  // Publishing
+  publicationId   String?  // FK to Publication or BlogPost external ID
+  publishedAt     DateTime?
+
+  // Feedback — collected at T+1h, T+24h, T+7d, T+30d
+  metrics1h       Json?    // { views, likes, comments, shares }
+  metrics24h      Json?
+  metrics7d       Json?
+  metrics30d      Json?
+  engagementRate      Float?   // final calculated rate
+  contentQualityRatio Float?   // (engagement * read_time) / views
+  feedbackStatus  String   @default("pending") // pending | collecting | complete
+  feedbackProcessedAt DateTime?
+
+  // Error tracking
+  errorMessage    String?  @db.Text
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  blogPost        BlogPost?
+
+  @@index([personaId])
+  @@index([contentType])
+  @@index([status])
+  @@index([feedbackStatus])
+  @@map("pipeline_runs")
+}

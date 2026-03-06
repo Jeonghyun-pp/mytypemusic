@@ -9,7 +9,7 @@ loadEnvConfig(monorepoRoot);
 
 const config: NextConfig = {
   outputFileTracingRoot: monorepoRoot,
-  serverExternalPackages: ["@resvg/resvg-js", "satori", "@remotion/renderer", "@remotion/bundler"],
+  serverExternalPackages: ["@resvg/resvg-js", "satori", "@remotion/renderer", "@remotion/bundler", "@remotion/lambda", "jose"],
 
   // Resolve @agents/* for both webpack and turbopack
   webpack(webpackConfig) {

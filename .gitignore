@@ -11,6 +11,9 @@ node_modules/
 dist/
 *.tsbuildinfo
 
+# Data
+.data/
+
 # OS
 .DS_Store
 Thumbs.db

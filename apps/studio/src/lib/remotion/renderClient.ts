@@ -7,10 +7,11 @@
  *   REMOTION_AWS_REGION, REMOTION_FUNCTION_NAME, REMOTION_SERVE_URL
  */
 
-import {
-  renderMediaOnLambda,
-  getRenderProgress,
-} from "@remotion/lambda/client";
+// Dynamic imports to avoid Turbopack resolution issues at build time
+async function getLambdaClient() {
+  const mod = await import("@remotion/lambda/client");
+  return mod;
+}
 
 interface RenderOptions {
   compositionId: string; // "Reels" or "Carousel"
@@ -43,6 +44,8 @@ export async function renderComposition(
   opts: RenderOptions,
 ): Promise<RenderResult> {
   const { region, functionName, serveUrl } = getConfig();
+
+  const { renderMediaOnLambda, getRenderProgress } = await getLambdaClient();
 
   const { renderId, bucketName } = await renderMediaOnLambda({
     region,
