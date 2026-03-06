@@ -1,4 +1,8 @@
-import * as jose from "jose";
+// Lazy-load jose to avoid Turbopack "Module not found" at build time
+async function getJose() {
+  const pkg = "jose";
+  return await import(/* webpackIgnore: true */ pkg);
+}
 import type { SnsOAuthAdapter, OAuthTokenResult } from "../types";
 
 const AUTH_URL = "https://twitter.com/i/oauth2/authorize";
@@ -13,6 +17,7 @@ function env(key: string): string {
 
 /** X uses PKCE — we generate code_verifier / code_challenge on auth start. */
 export async function generatePKCE() {
+  const jose = await getJose();
   const verifier = jose.base64url.encode(crypto.getRandomValues(new Uint8Array(32)));
   const challenge = jose.base64url.encode(
     new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(verifier))),

@@ -7,10 +7,21 @@
  *   REMOTION_AWS_REGION, REMOTION_FUNCTION_NAME, REMOTION_SERVE_URL
  */
 
-// Dynamic imports to avoid Turbopack resolution issues at build time
-async function getLambdaClient() {
-  const mod = await import("@remotion/lambda/client");
-  return mod;
+// Dynamic require to fully bypass Turbopack static analysis
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+function getLambdaClient(): {
+  renderMediaOnLambda: (...args: unknown[]) => Promise<{ renderId: string; bucketName: string }>;
+  getRenderProgress: (...args: unknown[]) => Promise<{
+    overallProgress: number;
+    done: boolean;
+    outputFile?: string;
+    fatalErrorEncountered: boolean;
+    errors?: { message: string }[];
+  }>;
+} {
+  const pkg = "@remotion/lambda/client";
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  return require(pkg);
 }
 
 interface RenderOptions {
@@ -45,7 +56,7 @@ export async function renderComposition(
 ): Promise<RenderResult> {
   const { region, functionName, serveUrl } = getConfig();
 
-  const { renderMediaOnLambda, getRenderProgress } = await getLambdaClient();
+  const { renderMediaOnLambda, getRenderProgress } = getLambdaClient();
 
   const { renderId, bucketName } = await renderMediaOnLambda({
     region,
