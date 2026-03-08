@@ -1,7 +1,7 @@
 {
   "framework": "nextjs",
   "regions": ["sin1"],
-  "installCommand": "cd ../.. && npm install",
+  "installCommand": "cd ../.. && npm ci",
   "crons": [
     {
       "path": "/api/jobs/daily-reset",
