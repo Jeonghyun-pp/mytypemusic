@@ -21,9 +21,11 @@ function buildSystemPrompt(spec: DesignSpec): string {
       ? "커버"
       : slide.kind === "cta"
         ? "아웃트로"
-        : `팩트 ${String(spec.currentSlideIndex)}`;
+        : slide.kind === "infographic"
+          ? "인포그래픽"
+          : `팩트 ${String(spec.currentSlideIndex)}`;
 
-  const tmpl = TEMPLATES[slide.templateId];
+  const tmpl = TEMPLATES[slide.templateId as TemplateId] ?? { label: slide.templateId };
   const isCodeMode = Boolean(slide.customHtml);
 
   const allTemplates = (Object.keys(TEMPLATES) as TemplateId[])
@@ -93,10 +95,16 @@ Available actions:
 - update_text: Change title/bodyText/footerText
 - update_style: Change style overrides (bgGradient, textColor, accentColor, footerColor, titleSizePx, bodySizePx, headlineSizePx, titleWeight, bodyWeight, letterSpacing, scrimOpacity, imageBrightness, cardRadius)
 - change_template: Switch template (provide templateId)
-- change_kind: Change slide kind (cover/fact/cta)
+- change_kind: Change slide kind (cover/fact/cta/quote/stat/list/ranking/sns/infographic)
 - add_slide: Add new slide after current
 - remove_slide: Remove current slide
 - apply_global_style: Set global style for all slides
+
+Infographic data format (bodyText):
+- infographic.bar.v1: "Label | Value" per line (e.g. "BTS | 1200")
+- infographic.donut.v1: "Label | Value" per line (e.g. "K-Pop | 45")
+- infographic.comparison.v1: First line "LeftName | RightName", then "Metric | LeftVal | RightVal" per line (e.g. "BTS | NewJeans\n스트리밍 | 500만 | 320만")
+- infographic.timeline.v1: "Label | Date | Description" per line (e.g. "데뷔 | 2020.03 | 첫 미니앨범 발매")
 
 IMPORTANT RULES:
 1. Always respond in Korean

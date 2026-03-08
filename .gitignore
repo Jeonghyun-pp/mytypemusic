@@ -29,6 +29,8 @@ outputs/runs/
 
 # Test outputs
 test-e2e-*/
+tmp/
+apps/studio/tmp/
 
 # Prisma generated client
 apps/studio/src/generated/

@@ -25,7 +25,7 @@ function getLambdaClient(): {
 }
 
 interface RenderOptions {
-  compositionId: string; // "Reels" or "Carousel"
+  compositionId: string; // e.g. "TextReveal", "ChartAnimation", "Reels", "Carousel"
   inputProps: Record<string, unknown>;
   codec?: "h264" | "h265";
 }

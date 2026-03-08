@@ -622,6 +622,81 @@ model TopicPerformance {
   @@map("topic_performance")
 }
 
+// ─── Design Engine: Style Memory ────────────────────
+
+model StyleMemoryEntry {
+  id               String   @id @default(uuid())
+  key              String   @unique // "artist:{spotifyId}" or "album:{spotifyId}"
+  tokenJson        Json     // StyleToken serialized
+  source           String   // "spotify_album_art" | "user_upload" | "url_extraction"
+  artistName       String   @default("")
+  albumName        String   @default("")
+  spotifyArtistId  String   @default("")
+  spotifyAlbumId   String   @default("")
+  confidence       Float    @default(0.5)
+  accessCount      Int      @default(0)
+  lastAccessedAt   DateTime @default(now())
+  extractedAt      DateTime @default(now())
+  createdAt        DateTime @default(now())
+
+  @@index([spotifyArtistId])
+  @@index([lastAccessedAt])
+  @@map("style_memory_entries")
+}
+
+// ─── Design Engine: Quality Records ─────────────────
+
+model DesignQualityEntry {
+  id               String   @id @default(uuid())
+  designId         String   @unique
+  contentType      String   // DesignContentType
+  format           String   // DesignFormat
+  platform         String   // DesignPlatform
+  scoresJson       Json     // CriticDimensionScore[]
+  averageScore     Float
+  verdict          String   // "pass" | "refine" | "regenerate"
+  iterationCount   Int      @default(1)
+  designPath       String   // "template" | "generated" | "motion" | "data_viz"
+  generationTimeMs Int      @default(0)
+  costUsd          Float?
+  createdAt        DateTime @default(now())
+
+  @@index([contentType])
+  @@index([verdict])
+  @@index([createdAt])
+  @@map("design_quality_entries")
+}
+
+// ─── Design Engine: Style Performance ───────────────
+
+model StylePerformanceEntry {
+  id              String   @id
+  contentType     String
+  format          String
+  platform        String
+  templateId      String?
+  designPath      String   // "template" | "generated" | "motion" | "data_viz"
+  typographyMood  String?
+  layoutStyle     String?
+  colorMood       String?
+  primaryColor    String?
+  accentColor     String?
+  hasImage        Boolean  @default(false)
+  slideCount      Int      @default(1)
+  impressions     Int?
+  engagements     Int?
+  saves           Int?
+  shares          Int?
+  clicks          Int?
+  engagementRate  Float?
+  createdAt       DateTime @default(now())
+
+  @@index([contentType, platform])
+  @@index([engagementRate])
+  @@index([createdAt])
+  @@map("style_performance_entries")
+}
+
 // ─── AI Editorial Pipeline ──────────────────────────
 
 model PipelineRun {
@@ -669,4 +744,23 @@ model PipelineRun {
   @@index([status])
   @@index([feedbackStatus])
   @@map("pipeline_runs")
+}
+
+model ImageGenHistory {
+  id            String   @id @default(uuid())
+  prompt        String   @db.Text
+  revisedPrompt String?  @db.Text
+  provider      String                        // dalle, flux-pro, flux-schnell
+  imageUrl      String   @db.Text
+  width         Int
+  height        Int
+  aspectRatio   String   @default("square")   // landscape, square, portrait
+  purpose       String   @default("general")  // hero, background, editorial, etc.
+  costUsd       Float    @default(0)
+  elapsedMs     Int      @default(0)
+  createdAt     DateTime @default(now())
+
+  @@index([provider])
+  @@index([createdAt])
+  @@map("image_gen_history")
 }

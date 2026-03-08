@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { SlideSpec, SlideStyleOverrides, DesignSpec, AiDesignAction } from "@/lib/studio/designEditor/types";
+import type { SlideSpec, SlideStyleOverrides, DesignSpec, AiDesignAction, TemplateId } from "@/lib/studio/designEditor/types";
 import type { Layer, LayerKind } from "@/lib/studio/designEditor/layerTypes";
 import StyleControlsTab from "./StyleControlsTab";
 import AiDesignChat from "./AiDesignChat";
@@ -9,8 +9,9 @@ import ReferenceImagesTab from "./ReferenceImagesTab";
 import CodeEditorTab from "./CodeEditorTab";
 import LayerPanel from "./LayerPanel";
 import DatabaseImportTab from "./DatabaseImportTab";
+import DataVizTab from "./DataVizTab";
 
-type Tab = "style" | "ai" | "ref" | "code" | "layers" | "db";
+type Tab = "style" | "ai" | "ref" | "code" | "layers" | "db" | "dataviz";
 
 interface ControlPanelProps {
   slide: SlideSpec;
@@ -30,6 +31,12 @@ interface ControlPanelProps {
   onAddLayer: (kind: LayerKind) => void;
   onRemoveLayer: (id: string) => void;
   onReorderLayer: (id: string, direction: "up" | "down") => void;
+  onBulkReorderLayers?: (orderedIds: string[]) => void;
+  // Color tracking
+  recentColors?: string[];
+  onColorUsed?: (color: string) => void;
+  // Data viz
+  onAddInfographicSlide: (templateId: TemplateId, title: string, bodyText: string, footerText: string) => void;
 }
 
 const s = {
@@ -103,6 +110,10 @@ export default function ControlPanel({
   onAddLayer,
   onRemoveLayer,
   onReorderLayer,
+  onBulkReorderLayers,
+  recentColors,
+  onColorUsed,
+  onAddInfographicSlide,
 }: ControlPanelProps) {
   const [tab, setTab] = useState<Tab>("style");
 
@@ -139,10 +150,17 @@ export default function ControlPanel({
         </button>
         <button
           type="button"
+          style={{ ...s.tab, ...(tab === "dataviz" ? s.tabActive : {}) }}
+          onClick={() => setTab("dataviz")}
+        >
+          차트
+        </button>
+        <button
+          type="button"
           style={{ ...s.tab, ...(tab === "ref" ? s.tabActive : {}) }}
           onClick={() => setTab("ref")}
         >
-          참고 이미지
+          참고
         </button>
         <button
           type="button"
@@ -160,6 +178,8 @@ export default function ControlPanel({
             presetId={spec.presetId}
             fontMood={spec.fontMood}
             globalStyle={spec.globalStyle}
+            recentColors={recentColors}
+            onColorUsed={onColorUsed}
             onChange={onSlideChange}
             onStyleChange={onStyleChange}
             onPresetChange={onPresetChange}
@@ -188,6 +208,14 @@ export default function ControlPanel({
             onAddLayer={onAddLayer}
             onRemoveLayer={onRemoveLayer}
             onReorderLayer={onReorderLayer}
+            onBulkReorderLayers={onBulkReorderLayers}
+          />
+        )}
+        {tab === "dataviz" && (
+          <DataVizTab
+            slide={slide}
+            onSlideChange={onSlideChange}
+            onAddInfographicSlide={onAddInfographicSlide}
           />
         )}
         {tab === "ref" && (
@@ -196,6 +224,9 @@ export default function ControlPanel({
             onCustomHtmlChange={onCustomHtmlChange}
             onSwitchToCodeTab={() => setTab("code")}
             onSlideChange={onSlideChange}
+            slideTitle={slide.title}
+            slideBodyText={slide.bodyText}
+            fontMood={spec.fontMood}
           />
         )}
         {tab === "db" && (

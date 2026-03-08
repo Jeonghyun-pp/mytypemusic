@@ -1,9 +1,24 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import type { Layer, TextLayer, ImageLayer, ShapeLayer, LayerKind } from "@/lib/studio/designEditor/layerTypes";
 import { generateCurvePath, CURVE_PRESETS } from "@agents/shared/curvedText";
 import type { CurvePreset } from "@agents/shared/curvedText";
+import ColorPickerPopover from "./ColorPickerPopover";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 interface LayerPanelProps {
   layers: Layer[];
@@ -13,6 +28,7 @@ interface LayerPanelProps {
   onAddLayer: (kind: LayerKind) => void;
   onRemoveLayer: (id: string) => void;
   onReorderLayer: (id: string, direction: "up" | "down") => void;
+  onBulkReorderLayers?: (orderedIds: string[]) => void;
 }
 
 const s = {
@@ -151,6 +167,76 @@ const KIND_LABELS: Record<LayerKind, string> = {
   "svg-path": "P",
 };
 
+function SortableLayerItem({
+  layer,
+  isSelected,
+  onSelect,
+  onToggleVisible,
+  onToggleLocked,
+}: {
+  layer: Layer;
+  isSelected: boolean;
+  onSelect: () => void;
+  onToggleVisible: () => void;
+  onToggleLocked: () => void;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: layer.id });
+
+  const style: React.CSSProperties = {
+    ...s.item,
+    ...(isSelected ? s.itemSelected : {}),
+    opacity: isDragging ? 0.5 : layer.visible ? 1 : 0.4,
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 10 : undefined,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} onClick={onSelect}>
+      <span
+        {...attributes}
+        {...listeners}
+        style={{
+          cursor: "grab",
+          fontSize: "11px",
+          color: "var(--text-muted)",
+          padding: "0 2px",
+          flexShrink: 0,
+          userSelect: "none",
+        }}
+        title="드래그하여 순서 변경"
+      >
+        ⠿
+      </span>
+      <span style={s.kindBadge}>{KIND_LABELS[layer.kind]}</span>
+      <span style={s.itemName}>{layer.name}</span>
+      <button
+        type="button"
+        style={s.iconBtn}
+        title={layer.visible ? "숨기기" : "보이기"}
+        onClick={(e) => { e.stopPropagation(); onToggleVisible(); }}
+      >
+        {layer.visible ? "o" : "-"}
+      </button>
+      <button
+        type="button"
+        style={s.iconBtn}
+        title={layer.locked ? "잠금 해제" : "잠금"}
+        onClick={(e) => { e.stopPropagation(); onToggleLocked(); }}
+      >
+        {layer.locked ? "L" : "U"}
+      </button>
+    </div>
+  );
+}
+
 export default function LayerPanel({
   layers,
   selectedLayerId,
@@ -159,9 +245,45 @@ export default function LayerPanel({
   onAddLayer,
   onRemoveLayer,
   onReorderLayer,
+  onBulkReorderLayers,
 }: LayerPanelProps) {
-  const sorted = [...layers].sort((a, b) => b.zIndex - a.zIndex); // top layers first
+  const sorted = useMemo(
+    () => [...layers].sort((a, b) => b.zIndex - a.zIndex),
+    [layers],
+  );
+  const sortedIds = useMemo(() => sorted.map((l) => l.id), [sorted]);
   const selectedLayer = layers.find((l) => l.id === selectedLayerId);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+  );
+
+  const handleDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const { active, over } = event;
+      if (!over || active.id === over.id) return;
+
+      const oldIndex = sortedIds.indexOf(active.id as string);
+      const newIndex = sortedIds.indexOf(over.id as string);
+      if (oldIndex === -1 || newIndex === -1) return;
+
+      // Build new order (sorted descending by visual position = descending zIndex)
+      const newOrder = [...sortedIds];
+      newOrder.splice(oldIndex, 1);
+      newOrder.splice(newIndex, 0, active.id as string);
+
+      if (onBulkReorderLayers) {
+        onBulkReorderLayers(newOrder);
+      } else {
+        // Fallback: assign zIndex values (highest first)
+        const maxZ = newOrder.length;
+        newOrder.forEach((id, i) => {
+          onUpdateLayer(id, { zIndex: maxZ - i } as Partial<Layer>);
+        });
+      }
+    },
+    [sortedIds, onBulkReorderLayers, onUpdateLayer],
+  );
 
   return (
     <div style={s.wrapper}>
@@ -197,42 +319,20 @@ export default function LayerPanel({
 
       {/* Layer list */}
       <div style={s.list}>
-        {sorted.map((layer) => (
-          <div
-            key={layer.id}
-            style={{
-              ...s.item,
-              ...(selectedLayerId === layer.id ? s.itemSelected : {}),
-              opacity: layer.visible ? 1 : 0.4,
-            }}
-            onClick={() => onSelectLayer(layer.id)}
-          >
-            <span style={s.kindBadge}>{KIND_LABELS[layer.kind]}</span>
-            <span style={s.itemName}>{layer.name}</span>
-            <button
-              type="button"
-              style={s.iconBtn}
-              title={layer.visible ? "숨기기" : "보이기"}
-              onClick={(e) => {
-                e.stopPropagation();
-                onUpdateLayer(layer.id, { visible: !layer.visible } as Partial<Layer>);
-              }}
-            >
-              {layer.visible ? "o" : "-"}
-            </button>
-            <button
-              type="button"
-              style={s.iconBtn}
-              title={layer.locked ? "잠금 해제" : "잠금"}
-              onClick={(e) => {
-                e.stopPropagation();
-                onUpdateLayer(layer.id, { locked: !layer.locked } as Partial<Layer>);
-              }}
-            >
-              {layer.locked ? "L" : "U"}
-            </button>
-          </div>
-        ))}
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={sortedIds} strategy={verticalListSortingStrategy}>
+            {sorted.map((layer) => (
+              <SortableLayerItem
+                key={layer.id}
+                layer={layer}
+                isSelected={selectedLayerId === layer.id}
+                onSelect={() => onSelectLayer(layer.id)}
+                onToggleVisible={() => onUpdateLayer(layer.id, { visible: !layer.visible } as Partial<Layer>)}
+                onToggleLocked={() => onUpdateLayer(layer.id, { locked: !layer.locked } as Partial<Layer>)}
+              />
+            ))}
+          </SortableContext>
+        </DndContext>
         {layers.length === 0 && (
           <div style={{ padding: "20px", textAlign: "center", fontSize: "12px", color: "var(--text-muted)" }}>
             레이어가 없습니다. 위 버튼으로 추가하세요.
@@ -302,7 +402,10 @@ export default function LayerPanel({
               </div>
               <div style={s.propRow}>
                 <span style={s.propLabel}>색상</span>
-                <input type="color" style={{ width: "30px", height: "30px", padding: "2px", borderRadius: "6px", border: "1px solid var(--border-light)", background: "none", cursor: "pointer" }} value={(selectedLayer as TextLayer).color} onChange={(e) => onUpdateLayer(selectedLayer.id, { color: e.target.value } as Partial<Layer>)} />
+                <ColorPickerPopover
+                  color={(selectedLayer as TextLayer).color}
+                  onChange={(c) => onUpdateLayer(selectedLayer.id, { color: c } as Partial<Layer>)}
+                />
               </div>
               {/* Curved text */}
               <div style={s.propRow}>
@@ -350,11 +453,17 @@ export default function LayerPanel({
               </div>
               <div style={s.propRow}>
                 <span style={s.propLabel}>채우기</span>
-                <input type="color" style={{ width: "30px", height: "30px", padding: "2px", borderRadius: "6px", border: "1px solid var(--border-light)", background: "none", cursor: "pointer" }} value={(selectedLayer as ShapeLayer).fill} onChange={(e) => onUpdateLayer(selectedLayer.id, { fill: e.target.value } as Partial<Layer>)} />
+                <ColorPickerPopover
+                  color={(selectedLayer as ShapeLayer).fill}
+                  onChange={(c) => onUpdateLayer(selectedLayer.id, { fill: c } as Partial<Layer>)}
+                />
               </div>
               <div style={s.propRow}>
                 <span style={s.propLabel}>테두리</span>
-                <input type="color" style={{ width: "30px", height: "30px", padding: "2px", borderRadius: "6px", border: "1px solid var(--border-light)", background: "none", cursor: "pointer" }} value={(selectedLayer as ShapeLayer).stroke ?? "#000000"} onChange={(e) => onUpdateLayer(selectedLayer.id, { stroke: e.target.value } as Partial<Layer>)} />
+                <ColorPickerPopover
+                  color={(selectedLayer as ShapeLayer).stroke ?? "#000000"}
+                  onChange={(c) => onUpdateLayer(selectedLayer.id, { stroke: c } as Partial<Layer>)}
+                />
                 <input type="number" style={{ ...s.propInput, width: "40px", flex: "none" }} min={0} value={(selectedLayer as ShapeLayer).strokeWidth} onChange={(e) => onUpdateLayer(selectedLayer.id, { strokeWidth: Number(e.target.value) } as Partial<Layer>)} />
               </div>
             </>

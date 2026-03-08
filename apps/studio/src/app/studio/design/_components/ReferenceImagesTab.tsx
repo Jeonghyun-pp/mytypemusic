@@ -8,6 +8,9 @@ interface ReferenceImagesTabProps {
   onCustomHtmlChange: (html: string) => void;
   onSwitchToCodeTab: () => void;
   onSlideChange: (patch: Partial<SlideSpec>) => void;
+  slideTitle?: string;
+  slideBodyText?: string;
+  fontMood?: string;
 }
 
 interface UploadedImage {
@@ -226,6 +229,9 @@ export default function ReferenceImagesTab({
   onCustomHtmlChange,
   onSwitchToCodeTab,
   onSlideChange,
+  slideTitle,
+  slideBodyText,
+  fontMood,
 }: ReferenceImagesTabProps) {
   const [images, setImages] = useState<UploadedImage[]>([]);
   const [dragging, setDragging] = useState(false);
@@ -249,6 +255,25 @@ export default function ReferenceImagesTab({
   // Decomposition state
   const [hasHeroImage, setHasHeroImage] = useState(false);
   const [overlayHtml, setOverlayHtml] = useState<string | null>(null);
+
+  // AI Image generation state
+  const [genPrompt, setGenPrompt] = useState("");
+  const [genProvider, setGenProvider] = useState<"dalle" | "flux-pro" | "flux-schnell">("dalle");
+  const [genAspect, setGenAspect] = useState<"landscape" | "square" | "portrait">("square");
+  const [aiGenerating, setAiGenerating] = useState(false);
+  const [suggestLoading, setSuggestLoading] = useState(false);
+  const [suggestions, setSuggestions] = useState<{ label: string; prompt: string }[]>([]);
+  const [aiResult, setAiResult] = useState<{
+    imageUrl: string;
+    provider: string;
+    width: number;
+    height: number;
+    elapsedMs: number;
+  } | null>(null);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [availableProviders, setAvailableProviders] = useState<
+    Array<{ provider: string; available: boolean }>
+  >([]);
 
   const addFiles = useCallback((files: FileList | File[]) => {
     const newImages: UploadedImage[] = [];
@@ -411,6 +436,86 @@ export default function ReferenceImagesTab({
     onCustomHtmlChange(overlayHtml);
     onSwitchToCodeTab();
   }, [overlayHtml, onCustomHtmlChange, onSwitchToCodeTab]);
+
+  // ── AI Image generation ─────────────────────────────────
+
+  // Fetch available providers on mount
+  useState(() => {
+    fetch("/api/visual/generate")
+      .then((r) => r.json())
+      .then((data) => {
+        const providers = (data as { providers: Array<{ provider: string; available: boolean }> }).providers;
+        setAvailableProviders(providers);
+        // Auto-select first available flux provider if present
+        const fluxPro = providers.find((p: { provider: string; available: boolean }) => p.provider === "flux-pro" && p.available);
+        if (fluxPro) setGenProvider("flux-pro");
+      })
+      .catch(() => {});
+  });
+
+  const handleSuggestPrompt = useCallback(async () => {
+    if (!slideTitle && !slideBodyText) return;
+    setSuggestLoading(true);
+    setSuggestions([]);
+    try {
+      const res = await fetch("/api/visual/suggest-prompt", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          topic: slideTitle,
+          bodyText: slideBodyText,
+          mood: fontMood,
+        }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${String(res.status)}`);
+      const data = (await res.json()) as { prompts: { label: string; prompt: string }[] };
+      setSuggestions(data.prompts);
+    } catch {
+      // silently fail — user can still type manually
+    } finally {
+      setSuggestLoading(false);
+    }
+  }, [slideTitle, slideBodyText, fontMood]);
+
+  const handleAiGenerate = useCallback(async () => {
+    if (!genPrompt.trim()) return;
+    setAiGenerating(true);
+    setAiError(null);
+    setAiResult(null);
+
+    try {
+      const res = await fetch("/api/visual/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt: genPrompt.trim(),
+          provider: genProvider,
+          aspectRatio: genAspect,
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error((data as Record<string, string>).error ?? `HTTP ${String(res.status)}`);
+      }
+      const data = (await res.json()) as {
+        imageUrl: string;
+        provider: string;
+        width: number;
+        height: number;
+        elapsedMs: number;
+      };
+      setAiResult(data);
+    } catch (err) {
+      setAiError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setAiGenerating(false);
+    }
+  }, [genPrompt, genProvider, genAspect]);
+
+  const handleUseAsHero = useCallback(() => {
+    if (!aiResult) return;
+    onSlideChange({ heroImageDataUri: aiResult.imageUrl });
+  }, [aiResult, onSlideChange]);
 
   return (
     <div style={s.container}>
@@ -648,6 +753,187 @@ export default function ReferenceImagesTab({
           <div style={{ marginBottom: "8px" }}>Claude Vision으로 이미지를 분석하고 있습니다...</div>
           <div style={{ fontSize: "11px" }}>약 10-15초 소요됩니다</div>
         </div>
+      )}
+
+      {/* ── AI Image Generation ─────────────────────────── */}
+      <div style={s.divider} />
+      <div style={s.sectionLabel}>AI 이미지 생성</div>
+
+      {/* Prompt input */}
+      <textarea
+        placeholder="생성할 이미지를 설명하세요... (예: 네온 조명의 미래적인 도시 풍경, 뮤직 매거진 커버 스타일)"
+        value={genPrompt}
+        onChange={(e) => setGenPrompt(e.target.value)}
+        style={{
+          width: "100%",
+          minHeight: "60px",
+          padding: "10px",
+          borderRadius: "10px",
+          border: "1px solid var(--border-light)",
+          background: "var(--bg-input)",
+          color: "var(--text)",
+          fontSize: "12px",
+          lineHeight: "1.5",
+          resize: "vertical" as const,
+          fontFamily: "inherit",
+          flexShrink: 0,
+          boxSizing: "border-box" as const,
+        }}
+      />
+
+      {/* Prompt suggestion */}
+      <div style={{ display: "flex", gap: "6px", flexShrink: 0, flexWrap: "wrap" as const }}>
+        <button
+          type="button"
+          style={{
+            padding: "5px 10px",
+            borderRadius: "6px",
+            border: "1px solid var(--border-light)",
+            background: "var(--bg-card)",
+            color: "var(--text-muted)",
+            fontSize: "11px",
+            cursor: slideTitle || slideBodyText ? "pointer" : "not-allowed",
+            opacity: slideTitle || slideBodyText ? 1 : 0.5,
+          }}
+          disabled={suggestLoading || (!slideTitle && !slideBodyText)}
+          onClick={() => void handleSuggestPrompt()}
+        >
+          {suggestLoading ? "생성 중..." : "AI 프롬프트 제안"}
+        </button>
+        {suggestions.map((s, i) => (
+          <button
+            key={i}
+            type="button"
+            style={{
+              padding: "5px 10px",
+              borderRadius: "6px",
+              border: "1px solid var(--accent)",
+              background: "var(--accent-light)",
+              color: "var(--accent)",
+              fontSize: "11px",
+              fontWeight: 600,
+              cursor: "pointer",
+              maxWidth: "100%",
+              textAlign: "left" as const,
+            }}
+            title={s.prompt}
+            onClick={() => setGenPrompt(s.prompt)}
+          >
+            {s.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Provider + Aspect selector */}
+      <div style={{ display: "flex", gap: "8px", flexShrink: 0 }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: "11px", color: "var(--text-muted)", marginBottom: "4px" }}>모델</div>
+          <select
+            style={{ ...s.providerSelect, width: "100%" }}
+            value={genProvider}
+            onChange={(e) => setGenProvider(e.target.value as typeof genProvider)}
+          >
+            <option value="dalle">DALL-E 3 (텍스트 정확)</option>
+            <option
+              value="flux-pro"
+              disabled={!availableProviders.find((p) => p.provider === "flux-pro")?.available}
+            >
+              Flux Pro (고품질){!availableProviders.find((p) => p.provider === "flux-pro")?.available ? " - 키 필요" : ""}
+            </option>
+            <option
+              value="flux-schnell"
+              disabled={!availableProviders.find((p) => p.provider === "flux-schnell")?.available}
+            >
+              Flux Schnell (빠름){!availableProviders.find((p) => p.provider === "flux-schnell")?.available ? " - 키 필요" : ""}
+            </option>
+          </select>
+        </div>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: "11px", color: "var(--text-muted)", marginBottom: "4px" }}>비율</div>
+          <select
+            style={{ ...s.providerSelect, width: "100%" }}
+            value={genAspect}
+            onChange={(e) => setGenAspect(e.target.value as typeof genAspect)}
+          >
+            <option value="square">1:1 (피드)</option>
+            <option value="landscape">16:9 (블로그)</option>
+            <option value="portrait">9:16 (스토리)</option>
+          </select>
+        </div>
+      </div>
+
+      {/* Generate button */}
+      <button
+        type="button"
+        style={{
+          ...s.generateBtn,
+          width: "100%",
+          background: "#7c3aed",
+          opacity: aiGenerating || !genPrompt.trim() ? 0.5 : 1,
+        }}
+        onClick={() => void handleAiGenerate()}
+        disabled={aiGenerating || !genPrompt.trim()}
+      >
+        {aiGenerating ? "생성 중..." : "이미지 생성"}
+      </button>
+
+      {/* AI generation error */}
+      {aiError && (
+        <div style={{ fontSize: "12px", color: "var(--red)", flexShrink: 0 }}>{aiError}</div>
+      )}
+
+      {/* AI generation loading */}
+      {aiGenerating && (
+        <div style={{ textAlign: "center", padding: "16px 0", fontSize: "13px", color: "var(--text-muted)", flexShrink: 0 }}>
+          <div style={{ marginBottom: "6px" }}>이미지를 생성하고 있습니다...</div>
+          <div style={{ fontSize: "11px" }}>
+            {genProvider === "flux-schnell" ? "약 2-5초" : genProvider === "flux-pro" ? "약 5-15초" : "약 10-20초"} 소요
+          </div>
+        </div>
+      )}
+
+      {/* AI generation result */}
+      {aiResult && (
+        <>
+          <img
+            src={aiResult.imageUrl}
+            alt="AI generated"
+            style={{
+              width: "100%",
+              borderRadius: "10px",
+              border: "1px solid var(--border-light)",
+              flexShrink: 0,
+            }}
+          />
+          <div style={s.meta}>
+            {(aiResult.elapsedMs / 1000).toFixed(1)}초 소요
+            {` | ${aiResult.provider}`}
+            {` | ${String(aiResult.width)}x${String(aiResult.height)}`}
+          </div>
+          <div style={s.buttonRow}>
+            <button
+              type="button"
+              style={s.applyBtn}
+              onClick={handleUseAsHero}
+            >
+              히어로 이미지로 사용
+            </button>
+            <button
+              type="button"
+              style={s.copyBtn}
+              onClick={() => {
+                // Add as reference image for style analysis
+                const img: UploadedImage = {
+                  file: new File([], "ai-generated.png"),
+                  preview: aiResult.imageUrl,
+                };
+                setImages((prev) => [...prev, img].slice(0, 3));
+              }}
+            >
+              참고 이미지에 추가
+            </button>
+          </div>
+        </>
       )}
     </div>
   );

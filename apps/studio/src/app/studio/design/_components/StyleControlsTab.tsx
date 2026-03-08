@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import type { SlideSpec, TemplateId, SlideStyleOverrides } from "@/lib/studio/designEditor/types";
 import { TEMPLATES, TEMPLATES_BY_KIND } from "@/lib/studio/designEditor/templates";
+import ColorPickerPopover from "./ColorPickerPopover";
 
 interface PaletteEntry {
   id: string;
@@ -35,6 +36,8 @@ interface StyleControlsTabProps {
   presetId?: string;
   fontMood?: string;
   globalStyle?: SlideStyleOverrides;
+  recentColors?: string[];
+  onColorUsed?: (color: string) => void;
   onChange: (patch: Partial<SlideSpec>) => void;
   onStyleChange: (patch: Partial<SlideStyleOverrides>) => void;
   onPresetChange: (presetId: string) => void;
@@ -131,7 +134,128 @@ const BG_PRESETS = [
   { id: "custom", label: "직접 선택", value: "" },
 ] as const;
 
-export default function StyleControlsTab({ slide, presetId, fontMood, globalStyle, onChange, onStyleChange, onPresetChange, onFontMoodChange, onClearCustomHtml, onApplyGlobalStyle }: StyleControlsTabProps) {
+const FONT_MOODS = [
+  { id: "bold-display", label: "Bold Display", desc: "Pretendard Bold", fontFamily: '"Pretendard", sans-serif', weight: 700 },
+  { id: "clean-sans", label: "Clean Sans", desc: "Noto Sans KR", fontFamily: '"Noto Sans KR", sans-serif', weight: 400 },
+  { id: "editorial", label: "Editorial", desc: "Noto Serif KR", fontFamily: '"Noto Serif KR", serif', weight: 400 },
+  { id: "minimal", label: "Minimal", desc: "Pretendard SemiBold", fontFamily: '"Pretendard", sans-serif', weight: 600 },
+  { id: "impact", label: "Impact", desc: "Black Han Sans", fontFamily: '"Black Han Sans", sans-serif', weight: 400 },
+  { id: "playful", label: "Playful", desc: "Pretendard", fontFamily: '"Pretendard", sans-serif', weight: 800 },
+] as const;
+
+function FontMoodPicker({ value, onChange }: { value: string; onChange: (mood: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const current = FONT_MOODS.find((m) => m.id === value) ?? FONT_MOODS[0];
+
+  useEffect(() => {
+    if (!open) return;
+    const handle = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handle);
+    return () => document.removeEventListener("mousedown", handle);
+  }, [open]);
+
+  return (
+    <div style={{ ...s.section, position: "relative" }} ref={ref}>
+      <label style={s.label}>폰트 무드</label>
+      <button
+        type="button"
+        style={{
+          ...s.select,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          textAlign: "left" as const,
+          width: "100%",
+        }}
+        onClick={() => setOpen(!open)}
+      >
+        <span style={{ fontFamily: current.fontFamily, fontWeight: current.weight }}>
+          {current.label}
+        </span>
+        <span style={{ fontSize: "10px", color: "var(--text-muted)", marginLeft: "8px" }}>
+          {open ? "\u25B2" : "\u25BC"}
+        </span>
+      </button>
+      {open && (
+        <div
+          style={{
+            position: "absolute",
+            zIndex: 100,
+            left: 0,
+            right: 0,
+            marginTop: "4px",
+            background: "var(--bg-card)",
+            border: "1px solid var(--border)",
+            borderRadius: "10px",
+            boxShadow: "0 8px 24px rgba(0,0,0,0.15)",
+            overflow: "hidden",
+          }}
+        >
+          {FONT_MOODS.map((m) => {
+            const isActive = m.id === value;
+            return (
+              <button
+                key={m.id}
+                type="button"
+                style={{
+                  display: "flex",
+                  flexDirection: "column" as const,
+                  width: "100%",
+                  padding: "10px 14px",
+                  border: "none",
+                  borderBottom: "1px solid var(--border-light)",
+                  background: isActive ? "var(--accent-light)" : "transparent",
+                  cursor: "pointer",
+                  textAlign: "left" as const,
+                  transition: "background 0.15s",
+                }}
+                onMouseEnter={(e) => {
+                  if (!isActive) e.currentTarget.style.background = "var(--bg-hover)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = isActive ? "var(--accent-light)" : "transparent";
+                }}
+                onClick={() => { onChange(m.id); setOpen(false); }}
+              >
+                <span
+                  style={{
+                    fontFamily: m.fontFamily,
+                    fontWeight: m.weight,
+                    fontSize: "15px",
+                    color: isActive ? "var(--accent)" : "var(--text)",
+                    lineHeight: 1.3,
+                  }}
+                >
+                  {m.label}
+                </span>
+                <span
+                  style={{
+                    fontFamily: m.fontFamily,
+                    fontWeight: m.weight,
+                    fontSize: "20px",
+                    color: "var(--text)",
+                    lineHeight: 1.4,
+                    marginTop: "2px",
+                  }}
+                >
+                  가나다라 ABC 음악매거진
+                </span>
+                <span style={{ fontSize: "10px", color: "var(--text-muted)", marginTop: "2px" }}>
+                  {m.desc}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function StyleControlsTab({ slide, presetId, fontMood, globalStyle, recentColors = [], onColorUsed, onChange, onStyleChange, onPresetChange, onFontMoodChange, onClearCustomHtml, onApplyGlobalStyle }: StyleControlsTabProps) {
   const overrides = slide.styleOverrides ?? {};
   const tmpl = TEMPLATES[slide.templateId];
   const availableTemplates = TEMPLATES_BY_KIND[slide.kind];
@@ -146,6 +270,32 @@ export default function StyleControlsTab({ slide, presetId, fontMood, globalStyl
   const [aiPalette, setAiPalette] = useState<PaletteEntry | null>(null);
   const [aiError, setAiError] = useState<string | null>(null);
   const paletteImageRef = useRef<HTMLInputElement>(null);
+
+  // Derive document colors from current style
+  const documentColors = useMemo(() => {
+    const colors = new Set<string>();
+    if (globalStyle?.textColor) colors.add(globalStyle.textColor);
+    if (globalStyle?.accentColor) colors.add(globalStyle.accentColor);
+    if (globalStyle?.bgGradient && globalStyle.bgGradient.startsWith("#")) colors.add(globalStyle.bgGradient);
+    if (overrides.textColor) colors.add(overrides.textColor);
+    if (overrides.accentColor) colors.add(overrides.accentColor);
+    return [...colors];
+  }, [globalStyle, overrides]);
+
+  // Palette colors from active palette
+  const activePaletteColors = useMemo(() => {
+    const p = PALETTE_LIST.find((pl) => pl.id === activePaletteId) ?? aiPalette;
+    if (!p) return [];
+    return [p.background, p.primary, p.secondary, p.accent, p.textColor];
+  }, [activePaletteId, aiPalette]);
+
+  const handleColorChange = useCallback(
+    (applyFn: (c: string) => void) => (c: string) => {
+      applyFn(c);
+      onColorUsed?.(c);
+    },
+    [onColorUsed],
+  );
 
   const setText = useCallback(
     (field: "title" | "bodyText" | "footerText", value: string) => {
@@ -408,21 +558,7 @@ export default function StyleControlsTab({ slide, presetId, fontMood, globalStyl
       </div>
 
       {/* ── Font mood selector ───────────────────── */}
-      <div style={s.section}>
-        <label style={s.label}>폰트 무드</label>
-        <select
-          style={s.select}
-          value={fontMood ?? "bold-display"}
-          onChange={(e) => onFontMoodChange(e.target.value)}
-        >
-          <option value="bold-display">Bold Display (Pretendard Bold)</option>
-          <option value="clean-sans">Clean Sans (Noto Sans KR)</option>
-          <option value="editorial">Editorial (Noto Serif KR)</option>
-          <option value="minimal">Minimal (Pretendard SemiBold)</option>
-          <option value="impact">Impact (Black Han Sans)</option>
-          <option value="playful">Playful (Phase 2)</option>
-        </select>
-      </div>
+      <FontMoodPicker value={fontMood ?? "bold-display"} onChange={onFontMoodChange} />
 
       {/* ── Text fields ─────────────────────────── */}
       <div style={s.section}>
@@ -593,14 +729,16 @@ export default function StyleControlsTab({ slide, presetId, fontMood, globalStyl
         </div>
         {bgMode === "custom" && (
           <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
-            <input
-              type="color"
-              style={s.colorInput}
-              value={customBg.startsWith("#") ? customBg : "#5B5FC7"}
-              onChange={(e) => {
-                setCustomBg(e.target.value);
-                onApplyGlobalStyle({ bgGradient: e.target.value });
+            <ColorPickerPopover
+              color={customBg.startsWith("#") ? customBg : "#5B5FC7"}
+              onChange={(c) => {
+                setCustomBg(c);
+                onApplyGlobalStyle({ bgGradient: c });
+                onColorUsed?.(c);
               }}
+              recentColors={recentColors}
+              documentColors={documentColors}
+              paletteColors={activePaletteColors}
             />
             <input
               type="text"
@@ -621,18 +759,20 @@ export default function StyleControlsTab({ slide, presetId, fontMood, globalStyl
         <label style={s.label}>색상</label>
         <div style={s.row}>
           <span style={{ fontSize: "12px", width: "60px", flexShrink: 0 }}>텍스트</span>
-          <input
-            type="color"
-            style={s.colorInput}
-            value={overrides.textColor ?? "#ffffff"}
-            onChange={(e) => onStyleChange({ textColor: e.target.value })}
+          <ColorPickerPopover
+            color={overrides.textColor ?? "#ffffff"}
+            onChange={handleColorChange((c) => onStyleChange({ textColor: c }))}
+            recentColors={recentColors}
+            documentColors={documentColors}
+            paletteColors={activePaletteColors}
           />
           <span style={{ fontSize: "12px", width: "60px", flexShrink: 0 }}>악센트</span>
-          <input
-            type="color"
-            style={s.colorInput}
-            value={overrides.accentColor ?? "#5B5FC7"}
-            onChange={(e) => onStyleChange({ accentColor: e.target.value })}
+          <ColorPickerPopover
+            color={overrides.accentColor ?? "#5B5FC7"}
+            onChange={handleColorChange((c) => onStyleChange({ accentColor: c }))}
+            recentColors={recentColors}
+            documentColors={documentColors}
+            paletteColors={activePaletteColors}
           />
         </div>
       </div>
@@ -752,12 +892,10 @@ export default function StyleControlsTab({ slide, presetId, fontMood, globalStyl
         </div>
         <div style={s.row}>
           <span style={{ fontSize: "12px", width: "40px", flexShrink: 0 }}>색상</span>
-          <input
-            type="color"
-            style={s.colorInput}
-            value={(() => {
+          <ColorPickerPopover
+            color={(() => {
               const c = globalStyle?.shadow?.color ?? "";
-              const m = c.match(/rgba?\((\d+),(\d+),(\d+)/);
+              const m = c.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
               if (m) {
                 const rr = Number(m[1]).toString(16).padStart(2, "0");
                 const gg = Number(m[2]).toString(16).padStart(2, "0");
@@ -766,8 +904,7 @@ export default function StyleControlsTab({ slide, presetId, fontMood, globalStyl
               }
               return "#000000";
             })()}
-            onChange={(e) => {
-              const hex = e.target.value;
+            onChange={(hex) => {
               const r = parseInt(hex.slice(1, 3), 16);
               const g = parseInt(hex.slice(3, 5), 16);
               const b = parseInt(hex.slice(5, 7), 16);

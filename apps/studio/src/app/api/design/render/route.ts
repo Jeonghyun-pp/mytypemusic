@@ -10,8 +10,8 @@ import type { FontMood, SvgEffectOptions } from "@/lib/studio/designEditor/inlin
 import type { SlideStyleOverrides } from "@/lib/studio/designEditor/types";
 import { z } from "zod";
 
-// ── LRU render cache (20 entries) ─────────────────────────
-const CACHE_MAX = 20;
+// ── LRU render cache ─────────────────────────────────────
+const CACHE_MAX = 100;
 const renderCache = new Map<string, string>();
 
 function cacheGet(key: string): string | undefined {

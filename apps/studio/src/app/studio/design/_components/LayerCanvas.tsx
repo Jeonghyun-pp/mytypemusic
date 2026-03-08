@@ -29,6 +29,58 @@ interface DragState {
 
 const HANDLE_SIZE = 8;
 
+function EditableTextContent({
+  text,
+  style,
+  onCommit,
+}: {
+  text: string;
+  style: React.CSSProperties;
+  onCommit: (text: string) => void;
+}) {
+  const elRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = elRef.current;
+    if (!el) return;
+    el.focus();
+    // Select all text
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    const sel = window.getSelection();
+    sel?.removeAllRanges();
+    sel?.addRange(range);
+  }, []);
+
+  const commit = useCallback(() => {
+    const el = elRef.current;
+    if (!el) return;
+    onCommit(el.innerText);
+  }, [onCommit]);
+
+  return (
+    <div
+      ref={elRef}
+      contentEditable
+      suppressContentEditableWarning
+      style={style}
+      onBlur={commit}
+      onKeyDown={(e) => {
+        if (e.key === "Escape") {
+          e.preventDefault();
+          commit();
+        }
+        // Stop propagation to prevent undo/redo shortcuts while editing
+        e.stopPropagation();
+      }}
+      onPointerDown={(e) => e.stopPropagation()}
+      onClick={(e) => e.stopPropagation()}
+    >
+      {text}
+    </div>
+  );
+}
+
 function getLayerDisplayStyle(layer: Layer): React.CSSProperties {
   const base: React.CSSProperties = {
     position: "absolute",
@@ -47,10 +99,33 @@ function getLayerDisplayStyle(layer: Layer): React.CSSProperties {
   return base;
 }
 
-function getLayerContent(layer: Layer): React.ReactNode {
+function getLayerContent(layer: Layer, isEditing?: boolean, onEditCommit?: (text: string) => void): React.ReactNode {
   switch (layer.kind) {
     case "text": {
       const tl = layer as TextLayer;
+      if (isEditing) {
+        return (
+          <EditableTextContent
+            text={tl.text}
+            style={{
+              width: "100%",
+              height: "100%",
+              fontFamily: tl.fontFamily ?? "Pretendard, sans-serif",
+              fontSize: tl.fontSize,
+              fontWeight: tl.fontWeight,
+              color: tl.color,
+              textAlign: tl.textAlign,
+              lineHeight: tl.lineHeight,
+              letterSpacing: `${String(tl.letterSpacing)}px`,
+              wordBreak: "keep-all",
+              overflow: "hidden",
+              outline: "none",
+              cursor: "text",
+            }}
+            onCommit={onEditCommit!}
+          />
+        );
+      }
       return (
         <div
           style={{
@@ -137,6 +212,7 @@ export default function LayerCanvas({
   const [viewScale, setViewScale] = useState(1);
   const [drag, setDrag] = useState<DragState | null>(null);
   const didDragRef = useRef(false);
+  const [editingLayerId, setEditingLayerId] = useState<string | null>(null);
 
   // Calculate scale to fit canvas in container
   useEffect(() => {
@@ -313,7 +389,7 @@ export default function LayerCanvas({
       }}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
-      onClick={() => { if (!drag && !didDragRef.current) onSelectLayer(null); }}
+      onClick={() => { if (!drag && !didDragRef.current) { onSelectLayer(null); setEditingLayerId(null); } }}
     >
       {/* Canvas */}
       <div
@@ -329,19 +405,34 @@ export default function LayerCanvas({
         }}
       >
         {/* Layers */}
-        {sorted.map((layer) => (
-          <div
-            key={layer.id}
-            style={getLayerDisplayStyle(layer)}
-            onPointerDown={(e) => handlePointerDown(e, layer.id, "move")}
-            onClick={(e) => { e.stopPropagation(); onSelectLayer(layer.id); }}
-          >
-            {getLayerContent(layer)}
-          </div>
-        ))}
+        {sorted.map((layer) => {
+          const isEditing = editingLayerId === layer.id;
+          return (
+            <div
+              key={layer.id}
+              style={getLayerDisplayStyle(layer)}
+              onPointerDown={(e) => {
+                if (isEditing) return; // Don't drag while editing
+                handlePointerDown(e, layer.id, "move");
+              }}
+              onClick={(e) => { e.stopPropagation(); if (!isEditing) onSelectLayer(layer.id); }}
+              onDoubleClick={(e) => {
+                e.stopPropagation();
+                if (layer.kind === "text" && !layer.locked) {
+                  setEditingLayerId(layer.id);
+                }
+              }}
+            >
+              {getLayerContent(layer, isEditing, (newText) => {
+                onUpdateLayer(layer.id, { text: newText } as Partial<Layer>);
+                setEditingLayerId(null);
+              })}
+            </div>
+          );
+        })}
 
         {/* Selection handles — wrapped in rotation-aware container */}
-        {selectedLayer && !selectedLayer.locked && (
+        {selectedLayer && !selectedLayer.locked && !editingLayerId && (
           <div
             style={{
               position: "absolute",

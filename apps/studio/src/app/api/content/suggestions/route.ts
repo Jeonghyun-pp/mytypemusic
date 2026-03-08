@@ -159,14 +159,17 @@ Return JSON:
   ]
 }`;
 
-      const [generalResult, nicheResult] = await Promise.all([
-        callGptJson(generalPrompt, { schema: SuggestionSchema, maxTokens: 1500 }),
-        callGptJson(nichePrompt, { schema: SuggestionSchema, maxTokens: 1500 }),
+      const [generalRes, nicheRes] = await Promise.allSettled([
+        callGptJson(generalPrompt, { schema: SuggestionSchema, maxTokens: 1500, timeoutMs: 25_000 }),
+        callGptJson(nichePrompt, { schema: SuggestionSchema, maxTokens: 1500, timeoutMs: 25_000 }),
       ]);
 
+      if (generalRes.status === "rejected") console.error("[suggestions] general LLM failed:", generalRes.reason);
+      if (nicheRes.status === "rejected") console.error("[suggestions] niche LLM failed:", nicheRes.reason);
+
       cache = {
-        general: generalResult.suggestions,
-        niche: nicheResult.suggestions,
+        general: generalRes.status === "fulfilled" ? generalRes.value.suggestions : [],
+        niche: nicheRes.status === "fulfilled" ? nicheRes.value.suggestions : [],
         nicheKeywords: allNicheKws,
         at: Date.now(),
       };
@@ -174,6 +177,7 @@ Return JSON:
       const generalResult = await callGptJson(generalPrompt, {
         schema: SuggestionSchema,
         maxTokens: 1500,
+        timeoutMs: 25_000,
       });
 
       cache = {
@@ -190,6 +194,7 @@ Return JSON:
       nicheKeywords: cache.nicheKeywords,
     });
   } catch (e) {
+    console.error("[suggestions] Error:", e);
     return serverError(String(e));
   }
 }

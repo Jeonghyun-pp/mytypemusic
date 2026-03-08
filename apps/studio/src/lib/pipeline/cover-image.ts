@@ -1,21 +1,11 @@
 /**
- * AI Cover Image Generator — DALL-E 3 based cover image generation.
+ * AI Cover Image Generator — DALL-E 3 + Flux dual provider.
  *
  * Generates a cover image prompt from article topic/content via LLM,
- * then calls DALL-E 3 to produce the image.
+ * then calls the best image generation provider for the use case.
  */
-import OpenAI from "openai";
 import { callGptJson } from "@/lib/llm";
-
-const openai = new OpenAI();
-
-type AspectRatio = "landscape" | "square" | "portrait";
-
-const SIZE_MAP: Record<AspectRatio, "1792x1024" | "1024x1024" | "1024x1792"> = {
-  landscape: "1792x1024", // blog hero
-  square: "1024x1024",    // SNS feed
-  portrait: "1024x1792",  // story/reels
-};
+import { generateImage, type AspectRatio, type ImageProvider, type ImagePurpose } from "@/lib/image-gen";
 
 export interface CoverImageOptions {
   topic: string;
@@ -23,6 +13,8 @@ export interface CoverImageOptions {
   style?: "editorial" | "minimal" | "abstract" | "photographic" | "illustration";
   aspectRatio?: AspectRatio;
   brandColor?: string;
+  /** Override auto-routing: force a specific provider */
+  provider?: ImageProvider;
 }
 
 interface CoverImageResult {
@@ -30,6 +22,8 @@ interface CoverImageResult {
   revisedPrompt: string;
   dallePrompt: string;
   aspectRatio: AspectRatio;
+  provider: ImageProvider;
+  elapsedMs: number;
 }
 
 /**
@@ -72,7 +66,20 @@ Return JSON: { "prompt": "your DALL-E prompt here" }`,
 }
 
 /**
- * Generate a cover image using DALL-E 3.
+ * Map cover style to image generation purpose for auto-routing.
+ */
+function styleToPurpose(style?: CoverImageOptions["style"]): ImagePurpose {
+  switch (style) {
+    case "photographic": return "hero";
+    case "editorial": return "editorial";
+    case "abstract":
+    case "illustration": return "background";
+    default: return "editorial";
+  }
+}
+
+/**
+ * Generate a cover image using the best provider (DALL-E 3 or Flux).
  */
 export async function generateCoverImage(
   opts: CoverImageOptions,
@@ -80,24 +87,21 @@ export async function generateCoverImage(
   const aspectRatio = opts.aspectRatio ?? "landscape";
   const dallePrompt = await generateImagePrompt(opts);
 
-  const response = await openai.images.generate({
-    model: "dall-e-3",
+  const result = await generateImage({
     prompt: dallePrompt,
-    n: 1,
-    size: SIZE_MAP[aspectRatio],
-    quality: "standard",
-    style: opts.style === "photographic" ? "natural" : "vivid",
+    provider: opts.provider,
+    purpose: styleToPurpose(opts.style),
+    aspectRatio,
+    dalleStyle: opts.style === "photographic" ? "natural" : "vivid",
   });
 
-  const first = response.data?.[0];
-  const imageUrl = first?.url;
-  if (!imageUrl) throw new Error("DALL-E returned no image");
-
   return {
-    imageUrl,
-    revisedPrompt: first?.revised_prompt ?? "",
+    imageUrl: result.imageUrl,
+    revisedPrompt: result.revisedPrompt ?? "",
     dallePrompt,
     aspectRatio,
+    provider: result.provider,
+    elapsedMs: result.elapsedMs,
   };
 }
 

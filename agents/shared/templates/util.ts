@@ -44,7 +44,7 @@ export function heroBlock(input: SlideRenderSpec, scrimH: number): string {
   const w = cw(input);
   const h = ch(input);
   const scrimOp = input.scrimOpacity ?? 0.65;
-  return `<img style="position:absolute;top:0;left:0;width:${w}px;height:${h}px;display:block;" src="${escapeHtml(input.heroImageDataUri)}" alt="" /><div style="position:absolute;left:0;bottom:0;width:${w}px;height:${scrimH}px;background:linear-gradient(to top, rgba(0,0,0,${scrimOp}), transparent);display:flex;"></div>`;
+  return `<img style="position:absolute;top:0;left:0;width:${w}px;height:${h}px;display:flex;object-fit:cover;" src="${escapeHtml(input.heroImageDataUri)}" alt="" /><div style="position:absolute;left:0;bottom:0;width:${w}px;height:${scrimH}px;background:linear-gradient(to top, rgba(0,0,0,${scrimOp}), transparent);display:flex;"></div>`;
 }
 
 /**

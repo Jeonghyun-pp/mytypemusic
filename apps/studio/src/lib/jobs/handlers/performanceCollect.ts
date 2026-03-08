@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { getValidToken } from "@/lib/sns/tokenManager";
 import { getInsightsAdapter } from "@/lib/sns/insights";
+import { updateEngagement } from "@/lib/design/style-performance";
 import type { JobHandler } from "../types";
 
 /**
@@ -86,6 +87,21 @@ export const performanceCollectHandler: JobHandler = {
         engagementRate,
       },
     });
+
+    // Bridge to design style performance tracking
+    // Content metadata stored in publication.content may include designTrackingId
+    const content = pub.content as Record<string, unknown> | null;
+    const designMeta = content?.designMeta as Record<string, unknown> | undefined;
+    const trackingId = (designMeta?.briefId ?? content?.designTrackingId) as string | undefined;
+    if (trackingId) {
+      updateEngagement(trackingId, {
+        impressions: views,
+        engagements: totalEngagement,
+        saves,
+        shares,
+        clicks: 0,
+      });
+    }
 
     return { collected: true, publicationId, views, likes, comments, shares, saves };
   },

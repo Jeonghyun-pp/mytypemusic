@@ -182,6 +182,12 @@ export default function AnalyticsView() {
         <button style={{ ...s.btnOutline, ...(tab === "chat" ? { background: "var(--bg-card)", fontWeight: 600 } : {}) }} onClick={() => setTab("chat")}>
           AI 인사이트
         </button>
+        <a
+          href="/studio/analytics/design"
+          style={{ ...s.btnOutline, textDecoration: "none", display: "inline-flex", alignItems: "center" }}
+        >
+          디자인 분석
+        </a>
       </div>
 
       {tab === "dashboard" && (

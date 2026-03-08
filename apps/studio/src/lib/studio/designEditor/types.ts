@@ -27,17 +27,33 @@ export type StylePresetId = z.infer<typeof StylePresetIdSchema>;
 
 // ── Slide kinds & templates ────────────────────────────────
 
-export const SlideKindSchema = z.enum(["cover", "fact", "summary", "cta"]);
+export const SlideKindSchema = z.enum(["cover", "fact", "cta", "quote", "stat", "list", "ranking", "sns", "infographic"]);
 export type SlideKind = z.infer<typeof SlideKindSchema>;
 
 export const TemplateIdSchema = z.enum([
   "cover.hero.v1",
   "cover.hero.v2",
+  "cover.minimal.v1",
   "body.fact.v1",
   "body.fact.v2",
   "body.fact.v3",
   "body.fact.v4",
+  "body.quote.v1",
+  "body.stat.v1",
+  "body.list.v1",
+  "body.ranking.v1",
+  "body.highlight.v1",
   "end.outro.v1",
+  "end.cta.v1",
+  "sns.square.v1",
+  "sns.story.v1",
+  "sns.twitter.v1",
+  "sns.youtube.v1",
+  "sns.quote.v1",
+  "infographic.bar.v1",
+  "infographic.donut.v1",
+  "infographic.comparison.v1",
+  "infographic.timeline.v1",
 ]);
 export type TemplateId = z.infer<typeof TemplateIdSchema>;
 

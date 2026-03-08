@@ -14,6 +14,7 @@ import LayerCanvas from "./LayerCanvas";
 import SlideNavigation from "./SlideNavigation";
 import CanvasSizeSelector from "./CanvasSizeSelector";
 import QuickPublishPanel from "../../_components/QuickPublishPanel";
+import { exportDeckToPdf, downloadBlob } from "@/lib/studio/designEditor/pdfExport";
 
 const STORAGE_KEY = "design-editor-spec";
 const MAX_UNDO = 50;
@@ -263,6 +264,7 @@ interface DesignEditorProps {
 export default function DesignEditor({ projectId, initialSpec, onAutoSave, initialTopic, initialCarousel }: DesignEditorProps = {}) {
   const [spec, setSpec] = useState<DesignSpec>(() => initialSpec ?? createDefaultDesignSpec());
   const [downloading, setDownloading] = useState(false);
+  const [pdfExporting, setPdfExporting] = useState(false);
   const [category, setCategory] = useState("");
 
   // Pre-fill first slide with topic + carousel concept from AI suggestion
@@ -541,6 +543,25 @@ export default function DesignEditor({ projectId, initialSpec, onAutoSave, initi
     });
   }, [updateSpec]);
 
+  const handleAddInfographicSlide = useCallback((templateId: TemplateId, title: string, bodyText: string, footerText: string) => {
+    updateSpec((prev) => {
+      if (prev.slides.length >= 10) return prev;
+      const insertAt = prev.currentSlideIndex + 1;
+      const newSlide: SlideSpec = {
+        slideIndex: insertAt,
+        kind: "infographic",
+        templateId,
+        title,
+        bodyText,
+        footerText,
+      };
+      const slides = [...prev.slides];
+      slides.splice(insertAt, 0, newSlide);
+      for (let j = 0; j < slides.length; j++) slides[j] = { ...slides[j]!, slideIndex: j };
+      return { ...prev, slides, currentSlideIndex: insertAt };
+    });
+  }, [updateSpec]);
+
   // ── Preset → fontMood + palette 자동 적용 ──────────
   const PRESET_DEFAULTS: Record<string, { fontMood: FontMood; palette?: { textColor: string; accentColor: string; bgGradient: string } }> = {
     news:      { fontMood: "impact",       palette: { textColor: "#1A1A1A", accentColor: "#000000", bgGradient: "#FFFFFF" } },
@@ -593,6 +614,13 @@ export default function DesignEditor({ projectId, initialSpec, onAutoSave, initi
 
   // ── Layer management ──────────────────────────────────
   const [selectedLayerId, setSelectedLayerId] = useState<string | null>(null);
+  const [recentColors, setRecentColors] = useState<string[]>([]);
+  const handleColorUsed = useCallback((color: string) => {
+    setRecentColors((prev) => {
+      const filtered = prev.filter((c) => c !== color);
+      return [color, ...filtered].slice(0, 10);
+    });
+  }, []);
 
   const layerCounter = useRef(0);
 
@@ -704,6 +732,24 @@ export default function DesignEditor({ projectId, initialSpec, onAutoSave, initi
     });
   }, [updateSpec]);
 
+  const handleBulkReorderLayers = useCallback((orderedIds: string[]) => {
+    updateSpec((prev) => {
+      const i = prev.currentSlideIndex;
+      const slides = [...prev.slides];
+      const slide = slides[i]!;
+      const layers = [...(slide.layers ?? [])];
+      // orderedIds is sorted highest-visual-first, assign descending zIndex
+      const maxZ = orderedIds.length;
+      const updated = layers.map((l) => {
+        const pos = orderedIds.indexOf(l.id);
+        if (pos === -1) return l;
+        return { ...l, zIndex: maxZ - pos } as Layer;
+      });
+      slides[i] = { ...slide, layers: updated };
+      return { ...prev, slides };
+    });
+  }, [updateSpec]);
+
   // ── 전체 덱 다운로드 ────────────────────────────────
   const handleDownloadAll = useCallback(async () => {
     setDownloading(true);
@@ -741,6 +787,18 @@ export default function DesignEditor({ projectId, initialSpec, onAutoSave, initi
       }
     } finally {
       setDownloading(false);
+    }
+  }, [spec]);
+
+  const handlePdfExport = useCallback(async () => {
+    setPdfExporting(true);
+    try {
+      const blob = await exportDeckToPdf(spec, {
+        title: spec.deckTitle ?? "Design Deck",
+      });
+      downloadBlob(blob, `${spec.deckTitle ?? "deck"}.pdf`);
+    } finally {
+      setPdfExporting(false);
     }
   }, [spec]);
 
@@ -856,7 +914,15 @@ export default function DesignEditor({ projectId, initialSpec, onAutoSave, initi
             onClick={() => void handleDownloadAll()}
             disabled={downloading}
           >
-            {downloading ? "다운로드 중..." : `PNG 다운로드 (${String(spec.slides.length)}장)`}
+            {downloading ? "다운로드 중..." : `PNG (${String(spec.slides.length)}장)`}
+          </button>
+          <button
+            type="button"
+            style={{ ...s.downloadBtn, background: pdfExporting ? "var(--accent)" : "var(--bg-input)", color: pdfExporting ? "#fff" : "var(--text)", opacity: pdfExporting ? 0.5 : 1 }}
+            onClick={() => void handlePdfExport()}
+            disabled={pdfExporting}
+          >
+            {pdfExporting ? "PDF 생성 중..." : "PDF"}
           </button>
           <button
             type="button"
@@ -900,6 +966,10 @@ export default function DesignEditor({ projectId, initialSpec, onAutoSave, initi
           onAddLayer={handleAddLayer}
           onRemoveLayer={handleRemoveLayer}
           onReorderLayer={handleReorderLayer}
+          onBulkReorderLayers={handleBulkReorderLayers}
+          recentColors={recentColors}
+          onColorUsed={handleColorUsed}
+          onAddInfographicSlide={handleAddInfographicSlide}
         />
         {currentSlide.layers && currentSlide.layers.length > 0 ? (
           <LayerCanvas

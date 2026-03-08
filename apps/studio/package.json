@@ -5,6 +5,19 @@
     "dev": "next dev --port 3100",
     "build": "npx prisma generate && next build",
     "start": "next start",
-    "bundle:remotion": "npx remotion bundle src/remotion/index.ts --out-dir=remotion-bundle"
+    "bundle:remotion": "npx remotion bundle src/remotion/index.ts --out-dir=remotion-bundle",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
+    "@fal-ai/client": "^1.9.4",
+    "jspdf": "^4.2.0",
+    "react-colorful": "^5.6.1"
+  },
+  "devDependencies": {
+    "vitest": "^4.0.18"
   }
 }

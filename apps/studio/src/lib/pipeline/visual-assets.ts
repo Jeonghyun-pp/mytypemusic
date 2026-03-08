@@ -26,6 +26,8 @@ export interface VisualAssetResult {
     imageUrl: string;
     revisedPrompt: string;
     dallePrompt: string;
+    provider?: string;
+    elapsedMs?: number;
   };
   snsCards: SnsCardData[];
   reels?: {
