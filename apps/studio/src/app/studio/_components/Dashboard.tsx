@@ -8,6 +8,7 @@ import AiSuggestions from "./AiSuggestions";
 import PipelineStatus from "./PipelineStatus";
 import OnboardingWizard from "./OnboardingWizard";
 import UnifiedComposer from "./UnifiedComposer";
+import { usePipeline } from "./pipeline/PipelineProvider";
 
 // ── Helpers ──────────────────────────────────────────
 
@@ -124,6 +125,7 @@ const NAV_ITEMS = [
 
 export default function Dashboard() {
   const { events } = useCalendarEvents();
+  const { isActive: pipelineActive, startPipeline } = usePipeline();
   const [accountCount, setAccountCount] = useState<number | null>(null);
   const [skipped, setSkipped] = useState(false);
   const [composerOpen, setComposerOpen] = useState(false);
@@ -245,6 +247,53 @@ export default function Dashboard() {
           events={weekEvents}
           emptyText=""
         />
+      )}
+
+      {/* Pipeline launcher */}
+      {!pipelineActive && (
+        <div style={s.section}>
+          <button
+            onClick={startPipeline}
+            className="card-hover"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 16,
+              width: "100%",
+              padding: "20px 24px",
+              background: "linear-gradient(135deg, rgba(58,130,90,0.06), rgba(58,130,90,0.02))",
+              border: "1px solid rgba(58,130,90,0.2)",
+              borderRadius: "var(--radius-sm)",
+              cursor: "pointer",
+              textAlign: "left" as const,
+              transition: "all var(--transition)",
+            }}
+          >
+            <span style={{
+              width: 36,
+              height: 36,
+              borderRadius: "50%",
+              background: "var(--accent)",
+              color: "#fff",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 18,
+              fontWeight: 300,
+              flexShrink: 0,
+            }}>
+              {"▶"}
+            </span>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", marginBottom: 2 }}>
+                가이드 파이프라인 시작
+              </div>
+              <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
+                설정 → 기획 → 제작 → 발행 → 분석까지 단계별로 안내합니다
+              </div>
+            </div>
+          </button>
+        </div>
       )}
 
       {/* 4. 빠른 이동 */}

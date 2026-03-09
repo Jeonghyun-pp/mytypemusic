@@ -6,6 +6,10 @@ import { usePathname } from "next/navigation";
 import { useMediaQuery } from "@/lib/hooks/useMediaQuery";
 import UnifiedComposer from "./_components/UnifiedComposer";
 import FeatureGuide from "./_components/FeatureGuide";
+import PipelineProvider from "./_components/pipeline/PipelineProvider";
+import PipelineOverlay from "./_components/pipeline/PipelineOverlay";
+import PipelineStepHint from "./_components/pipeline/PipelineStepHint";
+import PipelineAwareFab from "./_components/pipeline/PipelineAwareFab";
 
 const NAV_GROUPS = [
   {
@@ -141,6 +145,7 @@ export default function StudioLayout({ children }: { children: React.ReactNode }
   );
 
   return (
+    <PipelineProvider>
     <div style={{ display: "flex", minHeight: "100vh" }}>
       {/* Mobile header bar */}
       {isMobile && (
@@ -236,6 +241,7 @@ export default function StudioLayout({ children }: { children: React.ReactNode }
       <main className="page-enter" key={pathname} style={{
         flex: 1,
         padding: isMobile ? "60px 16px 24px" : "32px 40px",
+        paddingBottom: 80, // ensure content is not hidden behind pipeline bar or FAB
         maxWidth: 1240,
         position: "relative",
       }}>
@@ -248,37 +254,17 @@ export default function StudioLayout({ children }: { children: React.ReactNode }
         }}>
           <FeatureGuide />
         </div>
+        <PipelineStepHint />
         {children}
       </main>
 
       {/* FAB: New Post */}
-      <button
-        className="fab-btn"
-        onClick={() => setComposerOpen(true)}
-        style={{
-          position: "fixed",
-          bottom: isMobile ? 20 : 28,
-          right: isMobile ? 20 : 28,
-          width: 52,
-          height: 52,
-          borderRadius: "50%",
-          border: "none",
-          background: "linear-gradient(135deg, var(--accent), #2E8D5A)",
-          color: "#fff",
-          fontSize: 26,
-          fontWeight: 300,
-          cursor: "pointer",
-          zIndex: 400,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-        title="새 포스트"
-      >
-        +
-      </button>
+      <PipelineAwareFab isMobile={isMobile} onClick={() => setComposerOpen(true)} />
 
       <UnifiedComposer open={composerOpen} onClose={() => setComposerOpen(false)} />
+
+      <PipelineOverlay />
     </div>
+    </PipelineProvider>
   );
 }
