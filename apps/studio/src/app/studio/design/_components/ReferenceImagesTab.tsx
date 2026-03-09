@@ -512,9 +512,30 @@ export default function ReferenceImagesTab({
     }
   }, [genPrompt, genProvider, genAspect]);
 
-  const handleUseAsHero = useCallback(() => {
+  const handleUseAsHero = useCallback(async () => {
     if (!aiResult) return;
-    onSlideChange({ heroImageDataUri: aiResult.imageUrl });
+    try {
+      const res = await fetch(aiResult.imageUrl);
+      const blob = await res.blob();
+      const reader = new FileReader();
+      const dataUri = await new Promise<string>((resolve, reject) => {
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+      onSlideChange({ heroImageDataUri: dataUri });
+    } catch {
+      // Fallback: proxy through our API to avoid CORS
+      const proxyRes = await fetch(`/api/visual/proxy?url=${encodeURIComponent(aiResult.imageUrl)}`);
+      const blob = await proxyRes.blob();
+      const reader = new FileReader();
+      const dataUri = await new Promise<string>((resolve, reject) => {
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+      onSlideChange({ heroImageDataUri: dataUri });
+    }
   }, [aiResult, onSlideChange]);
 
   return (
