@@ -1,4 +1,5 @@
 import type { TrendProvider, TrendItem } from "./types";
+import { fetchWithTimeout } from "@/lib/fetch-utils";
 
 const NEWS_API = "https://openapi.naver.com/v1/search/news.json";
 const BLOG_API = "https://openapi.naver.com/v1/search/blog.json";
@@ -38,9 +39,9 @@ export const naverSearchProvider: TrendProvider = {
 
       // News search — sorted by date, top 5
       try {
-        const newsRes = await fetch(
+        const newsRes = await fetchWithTimeout(
           `${NEWS_API}?query=${query}&display=5&sort=date`,
-          { headers },
+          { headers, timeout: 8_000 },
         );
         if (newsRes.ok) {
           const data = (await newsRes.json()) as {
@@ -65,9 +66,9 @@ export const naverSearchProvider: TrendProvider = {
 
       // Blog search — sorted by date, top 3
       try {
-        const blogRes = await fetch(
+        const blogRes = await fetchWithTimeout(
           `${BLOG_API}?query=${query}&display=3&sort=date`,
-          { headers },
+          { headers, timeout: 8_000 },
         );
         if (blogRes.ok) {
           const data = (await blogRes.json()) as {

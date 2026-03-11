@@ -87,13 +87,23 @@ export async function indexArticle(opts: {
   return indexed;
 }
 
+// -- Search result type shared by all search methods --
+
+interface ChunkResult {
+  id: string;
+  content: string;
+  sourceType: string;
+  sourceId: string;
+  score: number;
+}
+
 /**
  * Search ArticleChunks by vector similarity. Returns top-k most relevant chunks.
  */
 export async function searchSimilarChunks(
   query: string,
   opts?: { limit?: number; sourceType?: string; personaId?: string },
-): Promise<Array<{ id: string; content: string; sourceType: string; sourceId: string; score: number }>> {
+): Promise<ChunkResult[]> {
   const vector = await embed(query);
   const vectorStr = `[${vector.join(",")}]`;
   const limit = opts?.limit ?? 5;
@@ -129,4 +139,105 @@ export async function searchSimilarChunks(
     sourceId: r.source_id,
     score: Number(r.score),
   }));
+}
+
+/**
+ * Search ArticleChunks by keyword (BM25-style) using PostgreSQL full-text search.
+ * Uses plainto_tsquery for safe query parsing (handles Korean + English).
+ */
+export async function searchByKeyword(
+  query: string,
+  opts?: { limit?: number; sourceType?: string; personaId?: string },
+): Promise<ChunkResult[]> {
+  const limit = opts?.limit ?? 5;
+
+  const filters: string[] = [];
+  const params: unknown[] = [query, limit];
+
+  if (opts?.sourceType) {
+    params.push(opts.sourceType);
+    filters.push(`AND source_type = $${params.length}`);
+  }
+  if (opts?.personaId) {
+    params.push(opts.personaId);
+    filters.push(`AND persona_id = $${params.length}`);
+  }
+
+  const rows = await prisma.$queryRawUnsafe<
+    Array<{ id: string; content: string; source_type: string; source_id: string; score: number }>
+  >(
+    `SELECT id, content, source_type, source_id,
+            ts_rank_cd(to_tsvector('simple', content), plainto_tsquery('simple', $1)) as score
+     FROM article_chunks
+     WHERE to_tsvector('simple', content) @@ plainto_tsquery('simple', $1)
+     ${filters.join(" ")}
+     ORDER BY score DESC
+     LIMIT $2`,
+    ...params,
+  );
+
+  return rows.map((r) => ({
+    id: r.id,
+    content: r.content,
+    sourceType: r.source_type,
+    sourceId: r.source_id,
+    score: Number(r.score),
+  }));
+}
+
+/**
+ * Hybrid search: combines vector similarity + keyword (BM25) search
+ * using Reciprocal Rank Fusion (RRF).
+ *
+ * RRF score = 1/(k + rank_vector) + 1/(k + rank_keyword)
+ * k=60 is the standard constant that balances the two signals.
+ */
+export async function searchHybrid(
+  query: string,
+  opts?: { limit?: number; sourceType?: string; personaId?: string },
+): Promise<ChunkResult[]> {
+  const limit = opts?.limit ?? 5;
+  const fetchLimit = limit * 3; // fetch more from each method for better fusion
+
+  const searchOpts = { ...opts, limit: fetchLimit };
+
+  const [vectorResults, keywordResults] = await Promise.all([
+    searchSimilarChunks(query, searchOpts).catch(() => [] as ChunkResult[]),
+    searchByKeyword(query, searchOpts).catch(() => [] as ChunkResult[]),
+  ]);
+
+  // If one method returns nothing, fall back to the other
+  if (vectorResults.length === 0 && keywordResults.length === 0) return [];
+  if (keywordResults.length === 0) return vectorResults.slice(0, limit);
+  if (vectorResults.length === 0) return keywordResults.slice(0, limit);
+
+  // RRF fusion
+  const RRF_K = 60;
+  const scoreMap = new Map<string, { chunk: ChunkResult; rrfScore: number }>();
+
+  vectorResults.forEach((chunk, rank) => {
+    const existing = scoreMap.get(chunk.id);
+    const rrfContrib = 1 / (RRF_K + rank + 1);
+    if (existing) {
+      existing.rrfScore += rrfContrib;
+    } else {
+      scoreMap.set(chunk.id, { chunk, rrfScore: rrfContrib });
+    }
+  });
+
+  keywordResults.forEach((chunk, rank) => {
+    const existing = scoreMap.get(chunk.id);
+    const rrfContrib = 1 / (RRF_K + rank + 1);
+    if (existing) {
+      existing.rrfScore += rrfContrib;
+    } else {
+      scoreMap.set(chunk.id, { chunk, rrfScore: rrfContrib });
+    }
+  });
+
+  // Sort by RRF score descending, return top-k
+  return [...scoreMap.values()]
+    .sort((a, b) => b.rrfScore - a.rrfScore)
+    .slice(0, limit)
+    .map((entry) => ({ ...entry.chunk, score: entry.rrfScore }));
 }

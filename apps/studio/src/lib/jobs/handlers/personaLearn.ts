@@ -90,6 +90,7 @@ JSON만 반환하세요.`;
 
       try {
         const result = await callGptJson(prompt, {
+          caller: "persona-learn",
           schema: learningSchema,
           temperature: 0.4,
         });
@@ -101,8 +102,8 @@ JSON만 반환하세요.`;
 
         const mergedVocab = {
           ...currentVocab,
-          preferredWords: [...new Set([...preferred, ...result.addPreferred])].slice(-30),
-          avoidWords: [...new Set([...avoid, ...result.addAvoid])].slice(-20),
+          preferredWords: [...new Set([...preferred, ...(result.addPreferred ?? [])])].slice(-30),
+          avoidWords: [...new Set([...avoid, ...(result.addAvoid ?? [])])].slice(-20),
         };
 
         await prisma.writingPersona.update({

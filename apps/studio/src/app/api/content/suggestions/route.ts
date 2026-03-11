@@ -160,8 +160,8 @@ Return JSON:
 }`;
 
       const [generalRes, nicheRes] = await Promise.allSettled([
-        callGptJson(generalPrompt, { schema: SuggestionSchema, maxTokens: 1500, timeoutMs: 25_000 }),
-        callGptJson(nichePrompt, { schema: SuggestionSchema, maxTokens: 1500, timeoutMs: 25_000 }),
+        callGptJson(generalPrompt, { caller: "suggestions", schema: SuggestionSchema, maxTokens: 1500, timeoutMs: 25_000 }),
+        callGptJson(nichePrompt, { caller: "suggestions", schema: SuggestionSchema, maxTokens: 1500, timeoutMs: 25_000 }),
       ]);
 
       if (generalRes.status === "rejected") console.error("[suggestions] general LLM failed:", generalRes.reason);
@@ -175,6 +175,7 @@ Return JSON:
       };
     } else {
       const generalResult = await callGptJson(generalPrompt, {
+        caller: "suggestions",
         schema: SuggestionSchema,
         maxTokens: 1500,
         timeoutMs: 25_000,

@@ -298,6 +298,8 @@ model AutopilotConfig {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
+  proposals      AutopilotProposal[]
+
   @@index([snsAccountId])
   @@map("autopilot_configs")
 }
@@ -305,6 +307,7 @@ model AutopilotConfig {
 model AutopilotProposal {
   id               String   @id @default(uuid())
   autopilotConfigId String
+  config           AutopilotConfig @relation(fields: [autopilotConfigId], references: [id])
   topic            String
   reasoning        String   @db.Text
   content          Json     // { text, hashtags, mediaUrls? }
@@ -695,6 +698,25 @@ model StylePerformanceEntry {
   @@index([engagementRate])
   @@index([createdAt])
   @@map("style_performance_entries")
+}
+
+// ─── LLM Usage Tracking ─────────────────────────────
+
+model LlmUsageLog {
+  id               String   @id @default(cuid())
+  model            String
+  promptTokens     Int
+  completionTokens Int
+  totalTokens      Int
+  costUsd          Float
+  caller           String   // autopilot, pipeline, suggestions, topic-intelligence, design
+  durationMs       Int?
+  createdAt        DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([caller])
+  @@index([model])
+  @@map("llm_usage_logs")
 }
 
 // ─── AI Editorial Pipeline ──────────────────────────

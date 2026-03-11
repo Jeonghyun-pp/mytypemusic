@@ -9,6 +9,8 @@
  * Returns normalized WebSource[] regardless of provider.
  */
 
+import { fetchWithTimeout } from "@/lib/fetch-utils";
+
 export interface WebSource {
   title: string;
   url: string;
@@ -59,12 +61,13 @@ async function searchBrave(
   });
   if (freshness) params.set("freshness", freshness === "day" ? "pd" : freshness === "week" ? "pw" : "pm");
 
-  const res = await fetch(`https://api.search.brave.com/res/v1/web/search?${params}`, {
+  const res = await fetchWithTimeout(`https://api.search.brave.com/res/v1/web/search?${params}`, {
     headers: {
       "Accept": "application/json",
       "Accept-Encoding": "gzip",
       "X-Subscription-Token": apiKey,
     },
+    timeout: 15_000,
   });
 
   if (!res.ok) return [];
@@ -101,7 +104,7 @@ async function searchTavily(
 
   const days = freshness === "day" ? 1 : freshness === "week" ? 7 : freshness === "month" ? 30 : undefined;
 
-  const res = await fetch("https://api.tavily.com/search", {
+  const res = await fetchWithTimeout("https://api.tavily.com/search", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -112,6 +115,7 @@ async function searchTavily(
       include_answer: false,
       ...(days ? { days } : {}),
     }),
+    timeout: 15_000,
   });
 
   if (!res.ok) return [];
@@ -144,13 +148,14 @@ async function searchNaver(
   const clientSecret = process.env.NAVER_CLIENT_SECRET;
   if (!clientId || !clientSecret) return [];
 
-  const res = await fetch(
+  const res = await fetchWithTimeout(
     `https://openapi.naver.com/v1/search/webkr.json?query=${encodeURIComponent(query)}&display=${limit}&sort=date`,
     {
       headers: {
         "X-Naver-Client-Id": clientId,
         "X-Naver-Client-Secret": clientSecret,
       },
+      timeout: 15_000,
     },
   );
 

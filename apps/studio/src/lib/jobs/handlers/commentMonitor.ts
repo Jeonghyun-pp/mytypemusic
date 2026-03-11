@@ -88,7 +88,7 @@ async function classifyMessage(body: string): Promise<Classification> {
 Message: "${body.slice(0, 500)}"`;
 
   try {
-    return await callGptJson(prompt, { schema: classificationSchema, temperature: 0.3 });
+    return await callGptJson(prompt, { caller: "comment-monitor", schema: classificationSchema, temperature: 0.3 }) as Classification;
   } catch {
     return { type: "other", sentiment: "neutral", priority: "normal" };
   }
@@ -126,5 +126,5 @@ ${instructions ? `Additional instructions: ${instructions}` : ""}
 
 Reply in the same language as the original message. Keep it concise (1-3 sentences). Return ONLY the reply text.`;
 
-  return callGptSafe(prompt, { temperature: 0.7 });
+  return callGptSafe(prompt, { caller: "comment-monitor", temperature: 0.7 });
 }

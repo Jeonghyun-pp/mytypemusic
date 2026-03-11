@@ -63,6 +63,7 @@ Return JSON:
 Respond ONLY with the JSON object.`;
 
     const result = await callGptJson(prompt, {
+      caller: "multi-generate",
       schema: ResultSchema,
       maxTokens: 1500,
     });

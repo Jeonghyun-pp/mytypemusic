@@ -1,0 +1,38 @@
+name: CI
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Prisma generate
+        run: npx prisma generate
+        working-directory: apps/studio
+
+      - name: Type check
+        run: npx tsc --noEmit
+        working-directory: apps/studio
+
+      - name: Lint
+        run: npx next lint
+        working-directory: apps/studio
+
+      - name: Test
+        run: npx vitest run --passWithNoTests
+        working-directory: apps/studio
+
+      - name: Prisma validate
+        run: npx prisma validate
+        working-directory: apps/studio

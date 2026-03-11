@@ -205,6 +205,37 @@ export interface DataVizResult {
   height: number;
 }
 
+// ── Benchmark Report (for external-reference-based evaluation) ──
+
+/** Aggregated benchmark data from past quality + style performance stores. */
+export interface BenchmarkReport {
+  /** Historical average scores by dimension (from quality-store) */
+  historicalBaseline: {
+    averageScore: number;
+    passRate: number;
+    byDimension: Record<string, number>; // dimension → avg score
+  };
+  /** Top performing style attributes (from style-performance) */
+  topPerformingStyles: Array<{
+    attribute: string;    // e.g. "colorMood", "layoutStyle"
+    value: string;        // e.g. "vibrant", "bold"
+    engagementRate: number;
+    comparedToAvg: number; // percentage above/below average
+    sampleSize: number;
+  }>;
+  /** Platform-specific best practices */
+  platformNorms: {
+    platform: string;
+    avgScore: number;
+    topTemplates: string[];
+    bestColorMood?: string;
+    bestLayoutStyle?: string;
+  };
+  /** Sample size for confidence indicator */
+  totalSamples: number;
+  confidence: "high" | "medium" | "low";
+}
+
 // ── Quality log (for DB persistence) ────────────────────
 
 export interface DesignQualityRecord {
@@ -229,6 +260,14 @@ export interface DesignEngineInput {
   researchPacket?: unknown;         // ResearchPacket from pipeline
   referenceImageUrl?: string;       // optional album art / moodboard
   persona?: unknown;                // WritingPersona for voice consistency
+  /** Sourced images from Unsplash/Spotify to use in designs */
+  sourcedImageUrls?: string[];
+  /** Trend context for visual emphasis (e.g. trending topics get bolder styles) */
+  trendContext?: {
+    velocity: number;               // 0-1, how fast this topic is rising
+    sourceCount: number;            // how many trend sources mentioned this
+    isExploration: boolean;         // exploration vs exploitation topic
+  };
   skip?: {
     cardNews?: boolean;
     motionGraphic?: boolean;

@@ -1,11 +1,14 @@
 /**
  * Visual Asset Orchestrator — generates all visual assets for an article.
  *
- * Coordinates: cover image (DALL-E 3) + SNS cards + article reels data.
+ * Coordinates: cover image (DALL-E 3) + SNS cards + article reels data
+ * + sourced images (Unsplash + Spotify album art).
  */
 import { generateCoverImage, type CoverImageOptions } from "./cover-image";
 import { extractSnsQuotes, type SnsCardData } from "./sns-card";
 import { generateArticleReels } from "./article-reels";
+import { sourceImages, type SourcedImage } from "./image-source";
+import type { ResearchPacket } from "./types";
 import type { CarouselProps } from "@/remotion/CarouselComp";
 
 export interface VisualAssetInput {
@@ -13,11 +16,14 @@ export interface VisualAssetInput {
   content: string;
   style?: CoverImageOptions["style"];
   brandColor?: string;
+  /** Research packet for sourcing relevant images (Spotify album art, etc.) */
+  research?: ResearchPacket | null;
   /** Skip specific asset types */
   skip?: {
     coverImage?: boolean;
     snsCards?: boolean;
     reels?: boolean;
+    sourcedImages?: boolean;
   };
 }
 
@@ -34,6 +40,8 @@ export interface VisualAssetResult {
     props: CarouselProps;
     slideTexts: Array<{ text: string; type: string }>;
   };
+  /** Sourced images from Unsplash + Spotify album art */
+  sourcedImages: SourcedImage[];
 }
 
 /**
@@ -48,6 +56,7 @@ export async function generateVisualAssets(
   let coverIdx = -1;
   let cardsIdx = -1;
   let reelsIdx = -1;
+  let sourcedIdx = -1;
 
   if (!skip?.coverImage) {
     coverIdx = tasks.length;
@@ -81,9 +90,16 @@ export async function generateVisualAssets(
     );
   }
 
+  if (!skip?.sourcedImages) {
+    sourcedIdx = tasks.length;
+    tasks.push(
+      sourceImages({ topic, research: input.research }),
+    );
+  }
+
   const results = await Promise.allSettled(tasks);
 
-  const result: VisualAssetResult = { snsCards: [] };
+  const result: VisualAssetResult = { snsCards: [], sourcedImages: [] };
 
   if (coverIdx >= 0 && results[coverIdx]?.status === "fulfilled") {
     const cover = (results[coverIdx] as PromiseFulfilledResult<unknown>).value as {
@@ -119,6 +135,21 @@ export async function generateVisualAssets(
 
   if (cardsIdx >= 0 && results[cardsIdx]?.status === "fulfilled") {
     result.snsCards = (results[cardsIdx] as PromiseFulfilledResult<unknown>).value as SnsCardData[];
+  }
+
+  if (sourcedIdx >= 0 && results[sourcedIdx]?.status === "fulfilled") {
+    result.sourcedImages = (results[sourcedIdx] as PromiseFulfilledResult<unknown>).value as SourcedImage[];
+  }
+
+  // Inject sourced images into reels as additional slide backgrounds
+  if (result.reels && result.sourcedImages.length > 0) {
+    const imageUrls = result.sourcedImages.map((img) => img.url);
+    for (let i = 0; i < result.reels.props.slides.length; i++) {
+      const slide = result.reels.props.slides[i]!;
+      if (!slide.imageUrl && imageUrls.length > 0) {
+        slide.imageUrl = imageUrls[i % imageUrls.length]!;
+      }
+    }
   }
 
   return result;

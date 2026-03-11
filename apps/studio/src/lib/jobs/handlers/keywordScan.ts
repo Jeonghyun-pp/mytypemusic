@@ -151,5 +151,5 @@ The comment should:
 
 Return ONLY the comment text.`;
 
-  return callGpt(prompt, { temperature: 0.8 });
+  return callGpt(prompt, { caller: "keyword-scan", temperature: 0.8 });
 }

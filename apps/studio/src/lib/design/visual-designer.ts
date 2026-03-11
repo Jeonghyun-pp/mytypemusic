@@ -22,6 +22,7 @@ import { PLATFORM_SIZES } from "./types";
 import { DEFAULT_BRAND_KIT, getBrandFontStack, pickGradient } from "./brand-kit";
 import type { BrandKit } from "./brand-kit";
 import { SATORI_SUPPORTED_CSS, SATORI_UNSUPPORTED_CSS } from "./fonts";
+import { sanitizeForSatori } from "./satori-sanitizer";
 
 // Template renderer — resolves templateId + renderSpec → HTML string
 // Uses dynamic import to avoid circular dependency with agents/ package
@@ -79,6 +80,8 @@ export interface TemplatePathInput {
     footer?: string;
   }>;
   brandKit?: BrandKit;
+  /** Sourced image URLs (Unsplash/Spotify) to use as slide backgrounds */
+  sourcedImageUrls?: string[];
 }
 
 /**
@@ -111,6 +114,11 @@ export async function designWithTemplate(
     const templateId = sequence![i % sequence!.length]!;
     const content = input.contentSlides[i]!;
 
+    // Pick sourced image for this slide (cycle through available images)
+    const bgImageUrl = input.sourcedImageUrls?.length
+      ? input.sourcedImageUrls[i % input.sourcedImageUrls.length]
+      : undefined;
+
     // Build template render spec with style overrides
     const renderSpec = {
       title: content.title,
@@ -119,6 +127,7 @@ export async function designWithTemplate(
       slideIndex: i,
       fontFamily: getBrandFontStack(kit),
       bgGradient: styleOverrides.bgGradient,
+      bgImageUrl,
       textColor: styleOverrides.textColor,
       accentColor: styleOverrides.accentColor,
       canvasWidth: width,
@@ -229,6 +238,7 @@ Respond ONLY with the JSON object.`;
 
   try {
     return await callGptJson<StyleOverrides>(prompt, {
+      caller: "design",
       model: opts?.model ?? "gpt-4o-mini",
       temperature: 0.5,
       maxTokens: 300,
@@ -354,13 +364,17 @@ Korean text should be natural and grammatically correct.`;
 
   // Use callGptSafe (not callGptJson) since we expect raw HTML, not JSON
   const raw = await callGptSafe(prompt, {
+    caller: "design",
     model: opts?.model ?? "gpt-4o-mini",
     temperature: opts?.temperature ?? 0.8,
     maxTokens: 2000,
   });
 
   // Strip markdown fences if the LLM wraps the HTML
-  return raw.replace(/```html?\n?/g, "").replace(/```/g, "").trim();
+  const cleaned = raw.replace(/```html?\n?/g, "").replace(/```/g, "").trim();
+
+  // Sanitize for Satori compatibility (strip unsupported CSS, fix tags)
+  return sanitizeForSatori(cleaned);
 }
 
 // ── Unified entry point ─────────────────────────────────
@@ -375,6 +389,8 @@ export interface VisualDesignInput {
   }>;
   brandKit?: BrandKit;
   preferGenerated?: boolean;
+  /** Sourced image URLs (Unsplash/Spotify) to use as slide backgrounds */
+  sourcedImageUrls?: string[];
 }
 
 /**
@@ -398,6 +414,9 @@ export async function generateVisualDesign(
           title: s.title,
           body: s.body,
           role: s.role ?? (i === 0 ? "cover" : i === input.contentSlides.length - 1 ? "outro" : "body"),
+          bgImageUrl: input.sourcedImageUrls?.length
+            ? input.sourcedImageUrls[i % input.sourcedImageUrls.length]
+            : undefined,
         })),
         brandKit: input.brandKit,
       },
@@ -411,6 +430,7 @@ export async function generateVisualDesign(
       brief: input.brief,
       contentSlides: input.contentSlides,
       brandKit: input.brandKit,
+      sourcedImageUrls: input.sourcedImageUrls,
     },
     format,
     platform,

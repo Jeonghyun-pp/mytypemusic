@@ -1,25 +1,13 @@
 import { prisma } from "@/lib/db";
-import { searchSimilarChunks } from "./embedding";
+import { searchHybrid } from "./embedding";
 import { webSearch } from "./web-search";
 import type { ResearchPacket, PersonaContext } from "./types";
+import { cacheGetJSON, cacheSetJSON } from "@/lib/redis";
 
-// In-memory cache with size limit + TTL (works per serverless instance)
-const RESEARCH_CACHE_MAX = 50;
-const RESEARCH_CACHE_TTL = 24 * 60 * 60 * 1000;
-const researchCache = new Map<string, { data: ResearchPacket; ts: number }>();
+const RESEARCH_CACHE_TTL_SEC = 24 * 60 * 60; // 24 hours
 
-/** Evict expired entries and enforce max size. */
-function cacheCleanup() {
-  const now = Date.now();
-  for (const [key, entry] of researchCache) {
-    if (now - entry.ts > RESEARCH_CACHE_TTL) researchCache.delete(key);
-  }
-  // If still over limit, remove oldest entries
-  while (researchCache.size > RESEARCH_CACHE_MAX) {
-    const oldest = researchCache.keys().next().value;
-    if (oldest !== undefined) researchCache.delete(oldest);
-    else break;
-  }
+function researchCacheKey(topic: string): string {
+  return `research:${topic.toLowerCase().trim()}`;
 }
 
 /**
@@ -33,12 +21,10 @@ export async function gatherResearch(
     contentType?: string;
   },
 ): Promise<ResearchPacket> {
-  // Check cache first (same topic within 24h)
-  const cacheKey = topic.toLowerCase().trim();
-  const cached = researchCache.get(cacheKey);
-  if (cached && Date.now() - cached.ts < RESEARCH_CACHE_TTL) {
-    return cached.data;
-  }
+  // Check Redis cache first (same topic within 24h)
+  const cacheKey = researchCacheKey(topic);
+  const cached = await cacheGetJSON<ResearchPacket>(cacheKey);
+  if (cached) return cached;
 
   // Step 1: Extract entities locally (no LLM call)
   const entities = extractEntitiesLocal(topic);
@@ -71,8 +57,7 @@ export async function gatherResearch(
     webSources: webResults,
   };
 
-  cacheCleanup();
-  researchCache.set(cacheKey, { data: packet, ts: Date.now() });
+  void cacheSetJSON(cacheKey, packet, RESEARCH_CACHE_TTL_SEC);
   return packet;
 }
 
@@ -263,7 +248,7 @@ async function searchRelatedArticles(
   personaName?: string,
 ): Promise<RelatedArticle[]> {
   try {
-    const chunks = await searchSimilarChunks(topic, { limit: 5 });
+    const chunks = await searchHybrid(topic, { limit: 5 });
     return chunks
       .filter((c) => c.score > 0.3) // relevance threshold
       .map((c) => ({

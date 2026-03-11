@@ -1,4 +1,5 @@
 import type { TrendProvider, TrendItem } from "./types";
+import { fetchWithTimeout } from "@/lib/fetch-utils";
 
 const API = "https://openapi.naver.com/v1/datalab/search";
 
@@ -27,7 +28,7 @@ export const naverDatalabProvider: TrendProvider = {
     const startDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
     try {
-      const res = await fetch(API, {
+      const res = await fetchWithTimeout(API, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -40,6 +41,7 @@ export const naverDatalabProvider: TrendProvider = {
           timeUnit: "date",
           keywordGroups: groups,
         }),
+        timeout: 10_000,
       });
 
       if (!res.ok) return [];

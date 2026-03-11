@@ -143,6 +143,28 @@ export async function generateDesignBrief(
   }
   const contentSnippet = input.content.slice(0, 3000);
 
+  // Build trend context section for the prompt
+  let trendSection = "";
+  if (input.trendContext) {
+    const tc = input.trendContext;
+    const urgencyLevel = tc.velocity > 0.6 ? "매우 급상승" : tc.velocity > 0.3 ? "상승 중" : "안정적";
+    const emphasis = tc.sourceCount >= 3 ? "높음 (다수 소스에서 언급)" : tc.sourceCount >= 2 ? "중간" : "보통";
+    trendSection = `
+=== TREND CONTEXT ===
+Trend velocity: ${urgencyLevel} (${tc.velocity.toFixed(2)})
+Source coverage: ${emphasis} (${tc.sourceCount}개 소스)
+Topic type: ${tc.isExploration ? "탐색적 (실험적, 차별화된 디자인 가능)" : "검증됨 (안전한, 브랜드 일관성 우선)"}
+→ ${tc.velocity > 0.5 ? "Use bolder, more urgent visual style (vibrant colors, display_impact typography)" : "Use balanced, editorial visual style"}
+=== END TREND ===
+`;
+  }
+
+  // Build sourced images section
+  let imageSection = "";
+  if (input.sourcedImageUrls && input.sourcedImageUrls.length > 0) {
+    imageSection = `\nAvailable sourced images (${input.sourcedImageUrls.length} images from Unsplash/Spotify):\nThese real images are available for use in designs. Consider incorporating them into card news slides or as background elements.\n`;
+  }
+
   const prompt = `You are a creative director for a Korean music/culture web magazine's design team.
 
 Analyze the content below and produce a design brief that will guide visual designers, motion designers, and data visualization agents.
@@ -152,7 +174,7 @@ Topic: ${input.topic}
 Content (first 1500 chars):
 ${contentSnippet}
 === END CONTENT ===
-${input.referenceImageUrl ? `\nReference image URL provided: ${input.referenceImageUrl}\n(Note: You cannot see this image directly. Infer style from the URL path/filename if possible, otherwise focus on content analysis.)\n` : ""}
+${trendSection}${imageSection}${input.referenceImageUrl ? `\nReference image URL provided: ${input.referenceImageUrl}\n(Note: You cannot see this image directly. Infer style from the URL path/filename if possible, otherwise focus on content analysis.)\n` : ""}
 Your job:
 1. Classify the content type (album_review, artist_spotlight, trending, data_insight, list_ranking, general)
 2. Determine the overall mood/emotion of the content (in Korean, e.g. "에너지틱하면서 세련된")
@@ -189,6 +211,7 @@ Guidelines:
 Respond ONLY with the JSON object.`;
 
   const llmResult = await callGptJson(prompt, {
+    caller: "design",
     model: opts?.model ?? "gpt-4o-mini",
     temperature: opts?.temperature ?? 0.7,
     maxTokens: 800,

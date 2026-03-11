@@ -1,5 +1,46 @@
 import { callGptSafe } from "@/lib/llm";
-import type { PipelineOutline, PersonaContext, ContentType, ResearchPacket } from "./types";
+import type { PipelineOutline, PersonaContext, ContentType, ResearchPacket, Citation } from "./types";
+
+/** Numbered source reference for citation tracking */
+export interface NumberedSource {
+  refNumber: number;
+  title: string;
+  url: string;
+  snippet: string;
+  sourceType: Citation["sourceType"];
+}
+
+/**
+ * Assign sequential reference numbers to all citable sources in the research packet.
+ * Order: KG artists first, then web sources.
+ * Exported so editor-agent and orchestrator can use the same numbering.
+ */
+export function numberSources(research: ResearchPacket): NumberedSource[] {
+  const sources: NumberedSource[] = [];
+  let n = 1;
+
+  for (const a of research.artists) {
+    sources.push({
+      refNumber: n++,
+      title: `${a.name}${a.nameKo ? ` / ${a.nameKo}` : ""} (Knowledge Graph)`,
+      url: "",
+      snippet: a.bio?.slice(0, 150) ?? "",
+      sourceType: "knowledgeGraph",
+    });
+  }
+
+  for (const ws of research.webSources) {
+    sources.push({
+      refNumber: n++,
+      title: ws.title,
+      url: ws.url,
+      snippet: ws.snippet,
+      sourceType: "web",
+    });
+  }
+
+  return sources;
+}
 
 /**
  * Persona Writer Agent — generates full draft content from outline.
@@ -44,12 +85,15 @@ Requirements:
 - Start with a compelling hook (not "오늘은 ~에 대해 알아보겠습니다" pattern)
 - Use markdown formatting: # for title, ## for sections, ### for sub-sections
 - Include specific examples, data, or references where relevant
+- Use inline citations [1], [2], etc. when stating facts from the research data
+- End the article with a "## 참고 자료" section listing all cited sources: [N] Title — URL
 - End with a thought-provoking conclusion, not a generic summary
 - Maintain consistent voice throughout
 
 Return ONLY the markdown content.`;
 
   return callGptSafe(userPrompt, {
+    caller: "pipeline",
     model: "gpt-4o",
     temperature: 0.8,
     maxTokens: 8000,
@@ -159,26 +203,37 @@ Avoid generic filler phrases and clickbait.`;
 
 function buildResearchContext(research?: ResearchPacket): string {
   if (!research) return "";
-  const parts: string[] = ["\n--- RESEARCH DATA (use these facts in your writing) ---"];
+  const numbered = numberSources(research);
+  const parts: string[] = [
+    "\n--- RESEARCH DATA (use [N] citations when referencing these facts) ---",
+  ];
 
-  if (research.artists.length > 0) {
-    for (const a of research.artists) {
-      parts.push(`\n[${a.name}${a.nameKo ? ` / ${a.nameKo}` : ""}]`);
-      parts.push(`Genres: ${a.genres.join(", ")} | Popularity: ${a.popularity}/100`);
-      if (a.bio) parts.push(`Bio: ${a.bio.slice(0, 300)}`);
-      if (a.albums.length > 0) {
-        parts.push(`Albums: ${a.albums.map((al) => `${al.title} (${al.releaseDate ?? "?"})`).join(", ")}`);
-      }
-      if (a.relatedArtists.length > 0) {
-        parts.push(`Related: ${a.relatedArtists.map((r) => `${r.name} [${r.relationType}]`).join(", ")}`);
-      }
+  // Artist KG data with reference numbers
+  let artistIdx = 0;
+  for (const a of research.artists) {
+    const ref = numbered[artistIdx];
+    const tag = ref ? ` [${ref.refNumber}]` : "";
+    artistIdx++;
+    parts.push(`\n[${a.name}${a.nameKo ? ` / ${a.nameKo}` : ""}]${tag}`);
+    parts.push(`Genres: ${a.genres.join(", ")} | Popularity: ${a.popularity}/100`);
+    if (a.bio) parts.push(`Bio: ${a.bio.slice(0, 300)}`);
+    if (a.albums.length > 0) {
+      parts.push(`Albums: ${a.albums.map((al) => `${al.title} (${al.releaseDate ?? "?"})`).join(", ")}`);
+    }
+    if (a.relatedArtists.length > 0) {
+      parts.push(`Related: ${a.relatedArtists.map((r) => `${r.name} [${r.relationType}]`).join(", ")}`);
     }
   }
 
+  // Web sources with reference numbers
   if (research.webSources.length > 0) {
     parts.push("\nWeb sources:");
-    for (const s of research.webSources) {
-      parts.push(`- ${s.title}: ${s.snippet}`);
+    const webStart = research.artists.length;
+    for (let i = 0; i < research.webSources.length; i++) {
+      const s = research.webSources[i];
+      const ref = numbered[webStart + i];
+      const refNum = ref?.refNumber ?? webStart + i + 1;
+      parts.push(`[${refNum}] ${s!.title}: ${s!.snippet}`);
     }
   }
 

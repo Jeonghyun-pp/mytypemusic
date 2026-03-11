@@ -10,17 +10,18 @@
 import { prisma } from "@/lib/db";
 import { callGptJson } from "@/lib/llm";
 import { fetchTrends, formatTrendsForPrompt } from "@/lib/trends";
-import { searchSimilarChunks } from "./embedding";
+import { searchHybrid } from "./embedding";
 import type { ContentType } from "./types";
 
 // ── Types ──────────────────────────────────────────────
 
 export interface TopicScore {
   relevance: number;   // 0-1 brand/domain fit
-  timeliness: number;  // 0-1 trend strength + recency
+  timeliness: number;  // 0-1 trend strength + recency + velocity
   audienceFit: number; // 0-1 target audience match
   originality: number; // 0-1 vs our past content (RAG dedup)
   coverageGap: number; // 0-1 underserved topic area
+  velocity: number;    // 0-1 data-driven trend acceleration (from TrendSnapshot)
   overall: number;     // weighted average
 }
 
@@ -238,6 +239,7 @@ Rules:
 Respond ONLY with the JSON object.`;
 
   const result = await callGptJson<{ topics: RawTopic[] }>(prompt, {
+    caller: "topic-intelligence",
     model: "gpt-4o-mini",
     temperature: 0.6,
     maxTokens: 3000,
@@ -246,7 +248,47 @@ Respond ONLY with the JSON object.`;
   return result.topics;
 }
 
-// ── Step 4: Enrich with RAG + KG + cross-source ────────
+// ── Step 4: Enrich with RAG + KG + cross-source + velocity ─
+
+/**
+ * Compute velocity score from TrendSnapshot history.
+ * Measures how fast a topic is growing in the last 7 days.
+ *
+ * velocity = (appearances_recent_3d / appearances_older_4d)
+ * Normalized to 0-1 range. A brand-new topic trending today gets ~0.8+.
+ */
+async function computeVelocity(topicTitle: string): Promise<number> {
+  try {
+    const now = new Date();
+    const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+    const searchTerm = topicTitle.slice(0, 30).toLowerCase().trim();
+
+    const [recentCount, olderCount] = await Promise.all([
+      prisma.trendSnapshot.count({
+        where: {
+          title: { contains: searchTerm, mode: "insensitive" },
+          fetchedAt: { gte: threeDaysAgo },
+        },
+      }),
+      prisma.trendSnapshot.count({
+        where: {
+          title: { contains: searchTerm, mode: "insensitive" },
+          fetchedAt: { gte: sevenDaysAgo, lt: threeDaysAgo },
+        },
+      }),
+    ]);
+
+    if (recentCount === 0 && olderCount === 0) return 0; // no history
+    if (olderCount === 0) return Math.min(1, recentCount * 0.2); // brand-new topic
+    const ratio = recentCount / olderCount;
+    // ratio > 1 = accelerating, ratio < 1 = decelerating
+    return clamp(ratio * 0.4, 0, 0.5); // max +0.5 boost
+  } catch {
+    return 0;
+  }
+}
 
 async function enrichTopic(
   raw: RawTopic,
@@ -264,10 +306,14 @@ async function enrichTopic(
     }
   }
 
+  // Velocity boost from TrendSnapshot history (data-driven, not LLM-subjective)
+  const velocity = await computeVelocity(raw.topic);
+  timelinessBoost += velocity;
+
   // RAG originality check
   let originality = 0.8; // default: fairly original
   try {
-    const similar = await searchSimilarChunks(raw.topic, { limit: 3 });
+    const similar = await searchHybrid(raw.topic, { limit: 3 });
     if (similar.length > 0) {
       const maxSimilarity = Math.max(...similar.map((s) => s.score));
       originality = Math.max(0, 1 - maxSimilarity);
@@ -311,6 +357,7 @@ async function enrichTopic(
     audienceFit: clamp(raw.audienceFit),
     originality: clamp(originality),
     coverageGap: clamp(coverageGap),
+    velocity: clamp(velocity),
     overall: 0,
   };
 

@@ -47,44 +47,52 @@ export const commentFetchHandler: JobHandler = {
         select: { platformPostId: true },
       });
 
+      // Collect all comments from all posts, then batch insert
+      const allComments: Array<{
+        snsAccountId: string;
+        platform: string;
+        externalId: string;
+        parentPostId: string | undefined;
+        senderName: string;
+        senderHandle: string;
+        messageType: string;
+        body: string;
+        receivedAt: Date;
+      }> = [];
+
       for (const pub of publications) {
         if (!pub.platformPostId) continue;
-
         try {
           const comments = await adapter.fetchCommentsOnPost(
             accessToken,
             pub.platformPostId,
           );
           fetched += comments.length;
-
           for (const comment of comments) {
-            // Upsert — skip if already exists (dedup by platform + externalId)
-            try {
-              await prisma.incomingMessage.create({
-                data: {
-                  snsAccountId: account.id,
-                  platform: account.platform,
-                  externalId: comment.externalId,
-                  parentPostId: comment.parentPostId,
-                  senderName: comment.senderName,
-                  senderHandle: comment.senderHandle,
-                  messageType: comment.messageType,
-                  body: comment.body,
-                  receivedAt: comment.receivedAt,
-                },
-              });
-              created++;
-            } catch (e) {
-              // Unique constraint violation = already exists, skip
-              const msg = String(e);
-              if (msg.includes("Unique constraint")) continue;
-              throw e;
-            }
+            allComments.push({
+              snsAccountId: account.id,
+              platform: account.platform,
+              externalId: comment.externalId,
+              parentPostId: comment.parentPostId,
+              senderName: comment.senderName,
+              senderHandle: comment.senderHandle,
+              messageType: comment.messageType,
+              body: comment.body,
+              receivedAt: comment.receivedAt,
+            });
           }
         } catch {
           // API error for this post — continue with others
           continue;
         }
+      }
+
+      if (allComments.length > 0) {
+        const result = await prisma.incomingMessage.createMany({
+          data: allComments,
+          skipDuplicates: true,
+        });
+        created += result.count;
       }
     }
 

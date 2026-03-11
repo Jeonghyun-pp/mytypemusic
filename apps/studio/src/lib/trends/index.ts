@@ -2,14 +2,19 @@ import type { TrendItem } from "./types";
 import { naverDatalabProvider } from "./naver-datalab";
 import { naverSearchProvider } from "./naver-search";
 import { youtubeProvider } from "./youtube";
-import { hackerNewsProvider } from "./hackernews";
 import { googleTrendsProvider } from "./google";
+import { spotifyProvider } from "./spotify";
+import { redditProvider } from "./reddit";
+import { logger } from "@/lib/logger";
+import { cacheGetJSON, cacheSetJSON } from "@/lib/redis";
 
 export type { TrendItem } from "./types";
 
 // ---------------------------------------------------------------------------
-// In-memory cache — 15 minute TTL
+// Cache — Redis (shared across instances) with in-memory L1 for same-process
 // ---------------------------------------------------------------------------
+
+const CACHE_TTL_SEC = 15 * 60; // 15 minutes
 
 interface CacheEntry {
   items: TrendItem[];
@@ -18,32 +23,37 @@ interface CacheEntry {
   keyHash: string;
 }
 
-const CACHE_TTL = 15 * 60 * 1000;
-let cache: CacheEntry | null = null;
+let memCache: CacheEntry | null = null;
 
 function keyHash(kws: string[]): string {
   return kws.sort().join("|");
 }
 
+function trendCacheKey(kh: string): string {
+  return `trends:${kh}`;
+}
+
 // ---------------------------------------------------------------------------
-// Global trend providers (no keywords needed)
+// Global trend providers (support both general + keyword search)
 // ---------------------------------------------------------------------------
 
 const globalProviders = [
   googleTrendsProvider,
   youtubeProvider,
-  hackerNewsProvider,
+  spotifyProvider,
+  redditProvider,
+  // hackerNewsProvider — removed: not relevant to music/culture magazine domain
 ];
 
 // ---------------------------------------------------------------------------
-// Niche trend providers (keyword-dependent)
+// Niche trend providers (keyword-dependent, Korean-focused)
 // ---------------------------------------------------------------------------
 
 const nicheProviders = [naverDatalabProvider, naverSearchProvider];
 
 /**
  * Fetch trends from all providers.
- * - Global trends: Google Trends, YouTube KR, HackerNews
+ * - Global trends: Google Trends, YouTube KR, HackerNews (+ keyword search when provided)
  * - Niche trends (if keywords provided): Naver DataLab + Naver News/Blog search
  *
  * Results are cached for 15 minutes.
@@ -54,14 +64,22 @@ export async function fetchTrends(
   const kws = topicKeywords ?? [];
   const kh = keyHash(kws);
 
-  if (cache && cache.keyHash === kh && Date.now() - cache.fetchedAt < CACHE_TTL) {
-    return { global: cache.items, niche: cache.nicheItems };
+  // L1: in-memory same-process hit
+  if (memCache && memCache.keyHash === kh && Date.now() - memCache.fetchedAt < CACHE_TTL_SEC * 1000) {
+    return { global: memCache.items, niche: memCache.nicheItems };
   }
 
-  // Fetch global + niche in parallel
+  // L2: Redis shared cache
+  const redisHit = await cacheGetJSON<CacheEntry>(trendCacheKey(kh));
+  if (redisHit && Date.now() - redisHit.fetchedAt < CACHE_TTL_SEC * 1000) {
+    memCache = redisHit;
+    return { global: redisHit.items, niche: redisHit.nicheItems };
+  }
+
+  // Fetch global + niche in parallel; pass keywords to global providers too
   const [globalResults, nicheResults] = await Promise.all([
     Promise.allSettled(
-      globalProviders.map((p) => p.fetch({ geo: "KR" })),
+      globalProviders.map((p) => p.fetch({ keywords: kws, geo: "KR" })),
     ),
     kws.length > 0
       ? Promise.allSettled(
@@ -71,21 +89,32 @@ export async function fetchTrends(
   ]);
 
   const globalItems: TrendItem[] = [];
-  for (const r of globalResults) {
-    if (r.status === "fulfilled") globalItems.push(...r.value);
-  }
+  globalResults.forEach((r, i) => {
+    if (r.status === "fulfilled") {
+      globalItems.push(...r.value);
+    } else {
+      logger.warn({ source: globalProviders[i]?.name, error: String(r.reason) }, "trend fetch failed");
+    }
+  });
 
   const nicheItems: TrendItem[] = [];
-  for (const r of nicheResults) {
-    if (r.status === "fulfilled") nicheItems.push(...r.value);
-  }
+  nicheResults.forEach((r, i) => {
+    if (r.status === "fulfilled") {
+      nicheItems.push(...r.value);
+    } else {
+      logger.warn({ source: nicheProviders[i]?.name, error: String(r.reason) }, "niche trend fetch failed");
+    }
+  });
 
-  cache = { items: globalItems, nicheItems, fetchedAt: Date.now(), keyHash: kh };
+  const entry: CacheEntry = { items: globalItems, nicheItems, fetchedAt: Date.now(), keyHash: kh };
+  memCache = entry;
+  void cacheSetJSON(trendCacheKey(kh), entry, CACHE_TTL_SEC);
   return { global: globalItems, niche: nicheItems };
 }
 
 /**
  * Format trends into a text block suitable for LLM prompt injection.
+ * Separates general trends, keyword-matched global trends, and niche trends.
  */
 export function formatTrendsForPrompt(
   global: TrendItem[],
@@ -94,12 +123,26 @@ export function formatTrendsForPrompt(
 ): string {
   const parts: string[] = [];
 
-  if (global.length > 0) {
+  // Split global items into general trends and keyword-matched trends
+  const generalItems = global.filter((t) => !t.keyword);
+  const keywordItems = global.filter((t) => t.keyword);
+
+  if (generalItems.length > 0) {
     parts.push("## 오늘의 트렌드 (실시간 데이터)");
     parts.push(
-      ...global.slice(0, maxPerSection).map(
+      ...generalItems.slice(0, maxPerSection).map(
         (t, i) =>
           `${i + 1}. [${t.source}] ${t.title}${t.description ? ` — ${t.description}` : ""}`,
+      ),
+    );
+  }
+
+  if (keywordItems.length > 0) {
+    parts.push("\n## 키워드 관련 트렌드 (글로벌 소스)");
+    parts.push(
+      ...keywordItems.slice(0, maxPerSection).map(
+        (t, i) =>
+          `${i + 1}. [${t.source}] "${t.keyword}" → ${t.title}${t.description ? ` — ${t.description}` : ""}`,
       ),
     );
   }

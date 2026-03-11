@@ -1,22 +1,30 @@
+import { clerkMiddleware } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
+/**
+ * Proxy handler — uses Clerk if configured, falls back to password auth.
+ */
 export function proxy(request: NextRequest) {
-  const sitePassword = process.env.SITE_PASSWORD;
+  const clerkKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
 
-  // No password configured — allow all access
+  // If Clerk is configured, delegate to Clerk middleware
+  if (clerkKey) {
+    return clerkMiddleware()(request, {} as never);
+  }
+
+  // Fallback: password-based auth
+  const sitePassword = process.env.SITE_PASSWORD;
   if (!sitePassword) {
     return NextResponse.next();
   }
 
   const { pathname } = request.nextUrl;
 
-  // Allow login page and login API
   if (pathname === "/login" || pathname.startsWith("/api/auth/")) {
     return NextResponse.next();
   }
 
-  // Allow Next.js internals and static assets
   if (
     pathname.startsWith("/_next/") ||
     pathname.startsWith("/favicon") ||
@@ -25,18 +33,16 @@ export function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Check auth cookie
   const authCookie = request.cookies.get("site-auth")?.value;
   if (authCookie === sitePassword) {
     return NextResponse.next();
   }
 
-  // Redirect to login
   const loginUrl = request.nextUrl.clone();
   loginUrl.pathname = "/login";
   return NextResponse.redirect(loginUrl);
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|api/webhooks|api/inngest).*)"],
 };

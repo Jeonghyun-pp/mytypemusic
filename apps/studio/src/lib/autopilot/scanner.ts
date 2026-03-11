@@ -1,5 +1,7 @@
 import { prisma } from "@/lib/db";
 import { callGptJson } from "@/lib/llm";
+import { createLogger } from "@/lib/logger";
+import { notifySlack } from "@/lib/notify";
 import { fetchTrends, formatTrendsForPrompt } from "@/lib/trends";
 import { z } from "zod";
 
@@ -79,6 +81,7 @@ Respond ONLY with the JSON object.`;
 
     try {
       const parsed = await callGptJson(prompt, {
+        caller: "autopilot",
         schema: z.object({
           topic: z.string().default("Untitled"),
           reasoning: z.string().default(""),
@@ -86,9 +89,19 @@ Respond ONLY with the JSON object.`;
           hashtags: z.array(z.string()).default([]),
         }),
       });
-      proposals.push({ ...parsed, platform });
-    } catch {
-      // Skip if parsing/API fails
+      proposals.push({
+        topic: parsed.topic ?? "Untitled",
+        reasoning: parsed.reasoning ?? "",
+        text: parsed.text ?? "",
+        hashtags: parsed.hashtags ?? [],
+        platform,
+      });
+    } catch (err) {
+      createLogger({ configId, platform }).error(err, "autopilot proposal failed");
+      await notifySlack(
+        `[Autopilot] 제안 생성 실패`,
+        { configId, platform, error: String(err) },
+      );
     }
   }
 
@@ -122,14 +135,13 @@ export async function publishApprovedProposals(): Promise<number> {
         { scheduledAt: { lte: new Date() } },
       ],
     },
+    include: { config: true },
     take: 5,
   });
 
   let published = 0;
   for (const proposal of approved) {
-    const config = await prisma.autopilotConfig.findUnique({
-      where: { id: proposal.autopilotConfigId },
-    });
+    const config = proposal.config;
     if (!config) continue;
 
     try {
@@ -158,8 +170,12 @@ export async function publishApprovedProposals(): Promise<number> {
         },
       });
       published++;
-    } catch {
-      // Don't fail the whole batch
+    } catch (err) {
+      createLogger({ proposalId: proposal.id }).error(err, "autopilot publish failed");
+      await notifySlack(
+        `[Autopilot] 게시물 발행 실패`,
+        { proposalId: proposal.id, error: String(err) },
+      );
     }
   }
 

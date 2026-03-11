@@ -59,7 +59,7 @@ Rules:
 - The image should work as a background with text overlay
 
 Return JSON: { "prompt": "your DALL-E prompt here" }`,
-    { model: "gpt-4o-mini", temperature: 0.8 },
+    { caller: "pipeline", model: "gpt-4o-mini", temperature: 0.8 },
   );
 
   return result.prompt;

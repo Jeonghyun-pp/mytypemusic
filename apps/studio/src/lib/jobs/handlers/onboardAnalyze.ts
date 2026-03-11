@@ -92,6 +92,7 @@ JSON으로 반환:
 JSON만 반환하세요.`;
 
     const result = await callGptJson(prompt, {
+      caller: "onboarding",
       schema: personaSchema,
       temperature: 0.4,
     });

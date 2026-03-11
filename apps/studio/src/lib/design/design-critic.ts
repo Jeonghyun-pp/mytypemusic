@@ -14,6 +14,7 @@
 import { callGptVision } from "@/lib/llm";
 import { z } from "zod";
 import type {
+  BenchmarkReport,
   DesignBrief,
   DesignCriticResult,
   CriticDimensionScore,
@@ -33,7 +34,7 @@ const dimensionScoreSchema = z.object({
 });
 
 const criticResponseSchema = z.object({
-  scores: z.array(dimensionScoreSchema).min(5).max(5),
+  scores: z.array(dimensionScoreSchema).min(5).max(6),
   overallFeedback: z.string(),
   refinementInstructions: z.string().optional(),
 });
@@ -42,13 +43,17 @@ type CriticLLMResponse = z.infer<typeof criticResponseSchema>;
 
 // ── Constants ───────────────────────────────────────────
 
-const DIMENSIONS = [
+const BASE_DIMENSIONS = [
   "VISUAL_HIERARCHY",
   "BRAND_CONSISTENCY",
   "READABILITY",
   "AESTHETIC_QUALITY",
   "PLATFORM_FIT",
 ] as const;
+
+const BENCHMARK_DIMENSION = "COMPETITIVE_EDGE" as const;
+
+type DimensionName = (typeof BASE_DIMENSIONS)[number] | typeof BENCHMARK_DIMENSION;
 
 const PASS_THRESHOLD = 8.0;
 const REFINE_THRESHOLD = 6.0;
@@ -90,7 +95,42 @@ function buildRubricPrompt(
   kit: BrandKit,
   slideCount: number,
   platform: string,
+  benchmark?: BenchmarkReport,
 ): string {
+  // Build benchmark context section
+  let benchmarkSection = "";
+  if (benchmark && benchmark.totalSamples >= 3) {
+    const baseline = benchmark.historicalBaseline;
+    const norms = benchmark.platformNorms;
+    const topStyles = benchmark.topPerformingStyles;
+
+    benchmarkSection = `
+=== BENCHMARK DATA (${benchmark.confidence} confidence, ${String(benchmark.totalSamples)} samples) ===
+Historical baseline: avg score ${String(baseline.averageScore)}/10, pass rate ${String(Math.round(baseline.passRate * 100))}%
+${Object.entries(baseline.byDimension).map(([d, s]) => `  ${d}: ${String(s)}/10`).join("\n")}
+
+Platform "${norms.platform}" norms: avg score ${String(norms.avgScore)}/10
+${norms.bestColorMood ? `  Best performing color mood: ${norms.bestColorMood}` : ""}
+${norms.bestLayoutStyle ? `  Best performing layout: ${norms.bestLayoutStyle}` : ""}
+${norms.topTemplates.length > 0 ? `  Top templates: ${norms.topTemplates.join(", ")}` : ""}
+
+${topStyles.length > 0 ? `Top engagement-driving styles:\n${topStyles.map((s) => `  ${s.attribute}="${s.value}": ${s.comparedToAvg >= 0 ? "+" : ""}${String(s.comparedToAvg)}% vs avg (n=${String(s.sampleSize)})`).join("\n")}` : ""}
+=== END BENCHMARK ===
+`;
+  }
+
+  // Build the 6th dimension block only when benchmark is available
+  const competitiveEdgeDimension = benchmark && benchmark.totalSamples >= 3 ? `
+6. COMPETITIVE_EDGE (1-10)
+   - Does this design meet or exceed our historical baseline (avg ${String(benchmark.historicalBaseline.averageScore)}/10)?
+   - Does it leverage proven high-engagement style attributes?
+   - Would this stand out in a social media feed compared to typical magazine content?
+   - 9-10: Clearly exceeds historical baseline; uses proven winning styles
+   - 7-8: Meets baseline; incorporates some proven attributes
+   - 5-6: Below historical average; misses key engagement-driving elements
+   - 1-4: Significantly below baseline; generic and forgettable
+` : "";
+
   return `You are a senior visual design critic for a Korean music/culture web magazine.
 
 You are evaluating ${slideCount} rendered design slide(s) for the "${platform}" platform.
@@ -110,7 +150,7 @@ Background dark: ${kit.colors.background.dark}
 Font: ${kit.typography.heading.fontFamily}
 Safe margin: ${kit.layout.safeMargin}px
 
-=== EVALUATION RUBRIC ===
+${benchmarkSection}=== EVALUATION RUBRIC ===
 Score each dimension from 1 to 10. Be strict but fair.
 
 1. VISUAL_HIERARCHY (1-10)
@@ -158,7 +198,7 @@ Score each dimension from 1 to 10. Be strict but fair.
    - 7-8: Works well, minor adjustments for platform
    - 5-6: Technically compliant but not optimized
    - 1-4: Does not fit the platform
-
+${competitiveEdgeDimension}
 === OUTPUT FORMAT ===
 Return a JSON object:
 {
@@ -167,7 +207,8 @@ Return a JSON object:
     { "dimension": "BRAND_CONSISTENCY", "score": N, "feedback": "..." },
     { "dimension": "READABILITY", "score": N, "feedback": "..." },
     { "dimension": "AESTHETIC_QUALITY", "score": N, "feedback": "..." },
-    { "dimension": "PLATFORM_FIT", "score": N, "feedback": "..." }
+    { "dimension": "PLATFORM_FIT", "score": N, "feedback": "..." }${benchmark && benchmark.totalSamples >= 3 ? `,
+    { "dimension": "COMPETITIVE_EDGE", "score": N, "feedback": "..." }` : ""}
   ],
   "overallFeedback": "1-2 sentence summary in Korean",
   "refinementInstructions": "If average < 8: specific, actionable instructions in Korean for what to fix. If average >= 8: omit this field."
@@ -188,6 +229,8 @@ export interface CriticOptions {
   model?: string;
   temperature?: number;
   imageDetail?: "low" | "high" | "auto";
+  /** Benchmark report for external-reference-based evaluation */
+  benchmark?: BenchmarkReport;
 }
 
 /**
@@ -206,7 +249,7 @@ export async function critiqueDesign(
 
   if (designResult.slides.length === 0) {
     return {
-      scores: DIMENSIONS.map((d) => ({ dimension: d, score: 1, feedback: "슬라이드 없음" })),
+      scores: BASE_DIMENSIONS.map((d) => ({ dimension: d, score: 1, feedback: "슬라이드 없음" })),
       averageScore: 1,
       verdict: "regenerate",
       refinementInstructions: "디자인 슬라이드가 비어있습니다. 재생성이 필요합니다.",
@@ -219,7 +262,7 @@ export async function critiqueDesign(
 
   if (validImages.length === 0) {
     return {
-      scores: DIMENSIONS.map((d) => ({ dimension: d, score: 1, feedback: "렌더링 실패" })),
+      scores: BASE_DIMENSIONS.map((d) => ({ dimension: d, score: 1, feedback: "렌더링 실패" })),
       averageScore: 1,
       verdict: "regenerate",
       refinementInstructions: "모든 슬라이드 렌더링이 실패했습니다. 재생성이 필요합니다.",
@@ -228,7 +271,7 @@ export async function critiqueDesign(
 
   // 2. Build prompt
   const platform = designResult.slides[0]?.platform ?? "instagram";
-  const prompt = buildRubricPrompt(brief, brandKit, validImages.length, platform);
+  const prompt = buildRubricPrompt(brief, brandKit, validImages.length, platform, opts?.benchmark);
 
   // 3. Call Vision LLM
   const detail = opts?.imageDetail ?? "low";
@@ -245,8 +288,12 @@ export async function critiqueDesign(
   );
 
   // 4. Compute verdict
-  const scores = ensureAllDimensions(llmResponse.scores);
-  const averageScore = scores.reduce((sum, s) => sum + s.score, 0) / scores.length;
+  const hasBenchmark = !!(opts?.benchmark && opts.benchmark.totalSamples >= 3);
+  const scores = ensureAllDimensions(llmResponse.scores, hasBenchmark);
+  // Average only LLM-provided scores (exclude default-filled ones)
+  const llmProvided = scores.filter((s) => s.feedback !== "평가 누락 — 기본값 적용");
+  const avgSource = llmProvided.length > 0 ? llmProvided : scores;
+  const averageScore = avgSource.reduce((sum, s) => sum + s.score, 0) / avgSource.length;
   const roundedAvg = Math.round(averageScore * 100) / 100;
 
   let verdict: CriticVerdict;
@@ -270,11 +317,17 @@ export async function critiqueDesign(
 
 // ── Helpers ─────────────────────────────────────────────
 
-/** Ensure all 5 dimensions are present, fill missing with defaults */
-function ensureAllDimensions(scores: CriticDimensionScore[]): CriticDimensionScore[] {
+/** Ensure all required dimensions are present, fill missing with defaults */
+function ensureAllDimensions(
+  scores: CriticDimensionScore[],
+  hasBenchmark?: boolean,
+): CriticDimensionScore[] {
   const scoreMap = new Map(scores.map((s) => [s.dimension, s]));
 
-  return DIMENSIONS.map((dim) => {
+  const dimensions: DimensionName[] = [...BASE_DIMENSIONS];
+  if (hasBenchmark) dimensions.push(BENCHMARK_DIMENSION);
+
+  return dimensions.map((dim) => {
     const existing = scoreMap.get(dim);
     if (existing) return existing;
     return { dimension: dim, score: 5, feedback: "평가 누락 — 기본값 적용" };

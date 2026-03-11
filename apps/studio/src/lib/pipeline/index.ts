@@ -3,7 +3,7 @@ export { generateOutline } from "./outline-agent";
 export { generateDraft } from "./writer-agent";
 export { evaluateAndEdit } from "./editor-agent";
 export { gatherResearch } from "./research-agent";
-export { indexArticle, searchSimilarChunks, embed } from "./embedding";
+export { indexArticle, searchSimilarChunks, searchByKeyword, searchHybrid, embed } from "./embedding";
 export { syncArtistByName, syncArtistBySpotifyId, syncArtistsBatch } from "./kg-sync";
 export { discoverTopics, recordTopicPublished, getTrendGrowth } from "./topic-intelligence";
 export { webSearch } from "./web-search";
@@ -13,6 +13,7 @@ export { generateCoverImage, generateCoverImageSet } from "./cover-image";
 export { extractSnsQuotes, CARD_SIZES } from "./sns-card";
 export { generateArticleReels } from "./article-reels";
 export { generateVisualAssets } from "./visual-assets";
+export { sourceImages, sourceImagesByQuery } from "./image-source";
 export type { TopicBrief, TopicScore } from "./topic-intelligence";
 export type {
   PipelineResult,
@@ -24,4 +25,6 @@ export type {
   ContentType,
   ContentRules,
   ResearchPacket,
+  Citation,
 } from "./types";
+export type { SourcedImage } from "./image-source";

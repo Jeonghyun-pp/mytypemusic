@@ -38,6 +38,14 @@ export interface E2EInput {
   targetWordCount?: number;
   persona?: PersonaContext | null;
   referenceImageUrl?: string;
+  /** Sourced images from Unsplash/Spotify for designs */
+  sourcedImageUrls?: string[];
+  /** Trend context for visual emphasis (from TopicScore) */
+  trendContext?: {
+    velocity: number;
+    sourceCount: number;
+    isExploration: boolean;
+  };
   platforms?: DesignPlatform[];
   preferGenerated?: boolean;
   skip?: {
@@ -126,6 +134,8 @@ export async function runE2EPipeline(input: E2EInput): Promise<E2EResult> {
         topic: input.topic,
         content: articleContent,
         referenceImageUrl: input.referenceImageUrl,
+        sourcedImageUrls: input.sourcedImageUrls,
+        trendContext: input.trendContext,
         skip: {
           dataViz: input.skip?.dataViz,
         },

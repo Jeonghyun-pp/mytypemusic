@@ -12,6 +12,7 @@
  */
 
 import type {
+  BenchmarkReport,
   DesignBrief,
   DesignCriticResult,
   DesignFormat,
@@ -25,6 +26,7 @@ import { generateVisualDesign } from "./visual-designer";
 import type { VisualDesignInput } from "./visual-designer";
 import { critiqueDesign } from "./design-critic";
 import { interpretAndApply } from "./edit-interpreter";
+import { buildBenchmarkReport } from "./benchmark";
 
 // ── Types ───────────────────────────────────────────────
 
@@ -37,6 +39,8 @@ export interface RefinementOptions {
   imageDetail?: "low" | "high";  // Vision detail level
   brandKit?: BrandKit;
   skipCritic?: boolean;          // Skip critic (testing/cost saving)
+  /** Pre-built benchmark report; if omitted, auto-built from stores */
+  benchmark?: BenchmarkReport | null;
 }
 
 export interface IterationRecord {
@@ -75,6 +79,11 @@ export async function runRefinementLoop(
   const kit = opts?.brandKit ?? DEFAULT_BRAND_KIT;
   const start = performance.now();
 
+  // Auto-build benchmark from historical stores unless explicitly null
+  const benchmark = opts?.benchmark !== null
+    ? (opts?.benchmark ?? buildBenchmarkReport(brief.contentType, platform))
+    : undefined;
+
   const iterations: IterationRecord[] = [];
   let bestDesign: VisualDesignResult | null = null;
   let bestScore = 0;
@@ -94,12 +103,13 @@ export async function runRefinementLoop(
   }
 
   for (let iteration = 0; iteration < maxIterations; iteration++) {
-    // 1. Critique
+    // 1. Critique (with benchmark for data-driven evaluation)
     const criticResult = await critiqueDesign(
       currentDesign, brief, kit,
       {
         model: opts?.criticModel,
         imageDetail: opts?.imageDetail,
+        benchmark,
       },
     );
 
@@ -125,7 +135,7 @@ export async function runRefinementLoop(
     }
 
     // Score regression check (iteration > 0)
-    if (iteration > 0 && criticResult.averageScore <= iterations[iteration - 1]!.scores.averageScore) {
+    if (iteration > 0 && criticResult.averageScore < iterations[iteration - 1]!.scores.averageScore) {
       record.action = "accept_best";
       iterations.push(record);
       // Revert to best design
@@ -234,9 +244,13 @@ export async function quickRefine(
 ): Promise<{ design: VisualDesignResult; critique: DesignCriticResult }> {
   const kit = opts?.brandKit ?? DEFAULT_BRAND_KIT;
 
+  const benchmark = opts?.benchmark !== null
+    ? (opts?.benchmark ?? buildBenchmarkReport(brief.contentType, designResult.slides[0]?.platform ?? "instagram"))
+    : undefined;
+
   const critique = await critiqueDesign(
     designResult, brief, kit,
-    { model: opts?.criticModel, imageDetail: opts?.imageDetail },
+    { model: opts?.criticModel, imageDetail: opts?.imageDetail, benchmark },
   );
 
   if (critique.verdict === "pass" || !critique.refinementInstructions) {

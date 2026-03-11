@@ -76,10 +76,11 @@ Respond in JSON:
   "alternatives": ["<alt_skill_id>"]
 }`;
 
-  const result = await callGptJson<z.infer<typeof detectionSchema>>(prompt, {
+  const result = await callGptJson(prompt, {
+    caller: "design",
     model: opts?.model ?? "gpt-4o-mini",
     schema: detectionSchema,
-  });
+  }) as z.infer<typeof detectionSchema>;
 
   return result;
 }

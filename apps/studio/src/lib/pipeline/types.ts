@@ -38,6 +38,17 @@ export interface EditorResult {
   score: QualityScore;
   editedContent: string;
   passed: boolean;
+  citationIssues?: string[];
+}
+
+/** A numbered citation reference */
+export interface Citation {
+  refNumber: number;
+  title: string;
+  url: string;
+  snippet: string;
+  sourceType: "web" | "knowledgeGraph" | "rag";
+  accessedAt: string;
 }
 
 /** Research Agent output */
@@ -79,6 +90,7 @@ export interface PipelineResult {
   qualityScore: QualityScore;
   rewriteCount: number;
   researchPacket?: ResearchPacket;
+  citations?: Citation[];
   error?: string;
 }
 

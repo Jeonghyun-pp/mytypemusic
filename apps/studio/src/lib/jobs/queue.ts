@@ -1,6 +1,8 @@
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type JsonInput = any;
 import { prisma } from "@/lib/db";
+import { notifySlack } from "@/lib/notify";
+import { inngest } from "@/lib/inngest/client";
 import type { JobType, JobHandler } from "./types";
 
 const handlers = new Map<string, JobHandler>();
@@ -22,7 +24,26 @@ export function registerHandler(handler: JobHandler) {
   handlers.set(handler.type, handler);
 }
 
-/** Enqueue a new job for future processing. */
+// ── JobType → Inngest event mapping ─────────────────────
+
+const JOB_TO_EVENT: Partial<Record<JobType, string>> = {
+  publish: "publication/scheduled",
+  reply_send: "comment/reply",
+  keyword_comment_post: "keyword/comment-post",
+  onboard_analyze: "account/onboard",
+  persona_learn: "persona/learn",
+};
+
+/**
+ * Enqueue a job — Inngest-first with DB fallback.
+ *
+ * For job types with an Inngest event mapping, sends via Inngest for
+ * reliable cloud-managed execution with built-in retries.
+ * Always records in DB for audit trail.
+ *
+ * For scheduled jobs (scheduledAt in future), falls back to DB queue
+ * since Inngest step.sleep handles delays within functions, not at send time.
+ */
 export async function enqueueJob(opts: {
   type: JobType;
   payload?: Record<string, unknown>;
@@ -30,6 +51,19 @@ export async function enqueueJob(opts: {
   priority?: number;
   maxRetries?: number;
 }) {
+  const isDelayed = opts.scheduledAt && opts.scheduledAt.getTime() > Date.now() + 5000;
+  const eventName = JOB_TO_EVENT[opts.type];
+
+  // Try Inngest for immediate jobs with event mapping
+  if (eventName && !isDelayed) {
+    try {
+      await inngest.send({ name: eventName, data: opts.payload ?? {} });
+    } catch {
+      // Inngest send failed — fall through to DB queue
+    }
+  }
+
+  // Always record in DB (audit trail + fallback processing)
   return prisma.job.create({
     data: {
       type: opts.type,
@@ -130,6 +164,12 @@ export async function processJobs(batchSize = 10): Promise<{
           completedAt: shouldRetry ? undefined : new Date(),
         },
       });
+      if (!shouldRetry) {
+        await notifySlack(
+          `[Job 최종 실패] ${job.type}`,
+          { jobId: job.id, error: String(e), retryCount },
+        );
+      }
       results.push({
         jobId: job.id,
         type: job.type,

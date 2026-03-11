@@ -31,7 +31,7 @@ Return a JSON object with:
 
 Respond ONLY with the JSON object.`;
 
-  return callGptJson<BlogOutline>(prompt, { model: "gpt-4o-mini", temperature: 0.7 });
+  return callGptJson<BlogOutline>(prompt, { caller: "blog", model: "gpt-4o-mini", temperature: 0.7 });
 }
 
 /**
@@ -53,7 +53,7 @@ ${opts?.personaContext ?? ""}
 
 Write in Korean. Be engaging and hook the reader. Return ONLY the markdown content.`;
 
-  const intro = await callGptSafe(introPrompt, { maxTokens: 1000 });
+  const intro = await callGptSafe(introPrompt, { caller: "blog", maxTokens: 1000 });
   sections.push(`# ${outline.title}\n\n${intro}`);
 
   // Body sections
@@ -71,7 +71,7 @@ Write in Korean. Include examples, data, or practical tips where relevant.
 Use markdown formatting (## for heading, ### for sub-sections, lists, bold).
 Return ONLY the markdown content starting with ## heading.`;
 
-    const sectionContent = await callGptSafe(sectionPrompt, { maxTokens: 1500 });
+    const sectionContent = await callGptSafe(sectionPrompt, { caller: "blog", maxTokens: 1500 });
     sections.push(sectionContent);
   }
 
@@ -83,7 +83,7 @@ ${opts?.personaContext ?? ""}
 Summarize key takeaways and include a call-to-action. Write in Korean.
 Return ONLY the markdown content starting with ## heading.`;
 
-  const conclusion = await callGptSafe(conclusionPrompt, { maxTokens: 500 });
+  const conclusion = await callGptSafe(conclusionPrompt, { caller: "blog", maxTokens: 500 });
   sections.push(conclusion);
 
   return sections.join("\n\n---\n\n");

@@ -144,10 +144,11 @@ Respond in JSON:
   "sourceNote": "<data source note>"
 }`;
 
-  return callGptJson<ExtractedChartData>(prompt, {
+  return callGptJson(prompt, {
+    caller: "design",
     model: model ?? "gpt-4o-mini",
     schema: chartDataSchema,
-  });
+  }) as Promise<ExtractedChartData>;
 }
 
 // ── Chart config builder ────────────────────────────

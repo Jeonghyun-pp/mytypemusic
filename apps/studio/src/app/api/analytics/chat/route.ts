@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import { prisma } from "@/lib/db";
+import { cacheGet, cacheSet } from "@/lib/redis";
 
 const openai = new OpenAI();
 
@@ -8,16 +9,12 @@ interface ChatRequest {
   accountId?: string;
 }
 
-// Cache analytics context for 1 hour per accountId
-const analyticsContextCache = new Map<string, { text: string; ts: number }>();
-const CONTEXT_CACHE_TTL = 60 * 60 * 1000; // 1 hour
+const CONTEXT_CACHE_TTL_SEC = 60 * 60; // 1 hour
 
 async function getAnalyticsContext(accountId?: string): Promise<string> {
-  const cacheKey = accountId ?? "__all__";
-  const cached = analyticsContextCache.get(cacheKey);
-  if (cached && Date.now() - cached.ts < CONTEXT_CACHE_TTL) {
-    return cached.text;
-  }
+  const cacheKey = `analytics-ctx:${accountId ?? "__all__"}`;
+  const cached = await cacheGet(cacheKey);
+  if (cached) return cached;
 
   const since = new Date();
   since.setDate(since.getDate() - 30);
@@ -61,13 +58,7 @@ ${performances.map((p) =>
 ).join("\n")}
 `;
 
-  analyticsContextCache.set(cacheKey, { text, ts: Date.now() });
-
-  // Evict old entries
-  for (const [k, v] of analyticsContextCache) {
-    if (Date.now() - v.ts > CONTEXT_CACHE_TTL) analyticsContextCache.delete(k);
-  }
-
+  void cacheSet(cacheKey, text, CONTEXT_CACHE_TTL_SEC);
   return text;
 }
 

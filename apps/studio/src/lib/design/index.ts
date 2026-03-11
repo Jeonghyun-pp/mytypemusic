@@ -41,6 +41,9 @@ export {
   mergeBrandKit,
 } from "./brand-kit";
 
+// Satori Sanitizer
+export { sanitizeForSatori, validateForSatori } from "./satori-sanitizer";
+
 // Fonts
 export {
   selectFontMood,
@@ -62,6 +65,10 @@ export type { VisualDesignInput, TemplatePathInput, GeneratedPathInput } from ".
 // Design Critic
 export { critiqueDesign, critiqueSingleSlide } from "./design-critic";
 export type { CriticOptions } from "./design-critic";
+
+// Benchmark
+export { buildBenchmarkReport } from "./benchmark";
+export type { BenchmarkReport } from "./types";
 
 // Edit Interpreter
 export { parseEditInstructions, applyEdits, interpretAndApply } from "./edit-interpreter";

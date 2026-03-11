@@ -8,7 +8,19 @@ export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const name = searchParams.get("name");
 
-  if (!name || name.includes("..") || name.includes("/") || name.includes("\\")) {
+  if (!name || name.includes("..")) {
+    return NextResponse.json({ error: "Invalid filename" }, { status: 400 });
+  }
+
+  // If name looks like an R2 key (contains /), redirect to signed URL
+  if (name.includes("/") && process.env.R2_ENDPOINT) {
+    const { getFileSignedUrl } = await import("@/lib/storage");
+    const signedUrl = await getFileSignedUrl(name);
+    return NextResponse.redirect(signedUrl);
+  }
+
+  // Local file serving
+  if (name.includes("/") || name.includes("\\")) {
     return NextResponse.json({ error: "Invalid filename" }, { status: 400 });
   }
 

@@ -20,47 +20,49 @@ export const analyticsCollectHandler: JobHandler = {
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    const accountIds = accounts.map((a) => a.id);
+
+    // Batch fetch: snapshots (today + yesterday), publications, performance — 3 queries total
+    const [allSnapshots, allPubs, allPerf] = await Promise.all([
+      prisma.analyticsSnapshot.findMany({
+        where: { snsAccountId: { in: accountIds }, date: { in: [today, yesterday] } },
+      }),
+      prisma.publication.findMany({
+        where: { snsAccountId: { in: accountIds }, publishedAt: { gte: today } },
+        take: 200,
+      }),
+      prisma.postPerformance.findMany({
+        where: { snsAccountId: { in: accountIds }, snapshotAt: { gte: today } },
+        take: 500,
+      }),
+    ]);
+
+    // Group by account
+    const todayFmt = today.toISOString();
+    const yesterdayFmt = yesterday.toISOString();
+    const snapshotsByAccount = new Map<string, { today?: typeof allSnapshots[0]; yesterday?: typeof allSnapshots[0] }>();
+    for (const snap of allSnapshots) {
+      const key = snap.snsAccountId;
+      const entry = snapshotsByAccount.get(key) ?? {};
+      if (snap.date.toISOString() === todayFmt) entry.today = snap;
+      else if (snap.date.toISOString() === yesterdayFmt) entry.yesterday = snap;
+      snapshotsByAccount.set(key, entry);
+    }
+    const pubsByAccount = Map.groupBy(allPubs, (p) => p.snsAccountId);
+    const perfByAccount = Map.groupBy(allPerf, (p) => p.snsAccountId);
 
     let collected = 0;
 
     for (const account of accounts) {
-      // Skip if we already have today's snapshot
-      const existing = await prisma.analyticsSnapshot.findUnique({
-        where: {
-          snsAccountId_date: {
-            snsAccountId: account.id,
-            date: today,
-          },
-        },
-      });
-      if (existing) continue;
+      const snaps = snapshotsByAccount.get(account.id);
+      if (snaps?.today) continue; // already have today's snapshot
 
-      // Get yesterday's snapshot for growth calculation
-      const yesterday = new Date(today);
-      yesterday.setDate(yesterday.getDate() - 1);
-      const prevSnapshot = await prisma.analyticsSnapshot.findUnique({
-        where: {
-          snsAccountId_date: {
-            snsAccountId: account.id,
-            date: yesterday,
-          },
-        },
-      });
-
-      // Count publications and engagement from today
-      const todayPubs = await prisma.publication.findMany({
-        where: {
-          snsAccountId: account.id,
-          publishedAt: { gte: today },
-        },
-      });
-
-      const todayPerf = await prisma.postPerformance.findMany({
-        where: {
-          snsAccountId: account.id,
-          snapshotAt: { gte: today },
-        },
-      });
+      const prevSnapshot = snaps?.yesterday;
+      const todayPubs = pubsByAccount.get(account.id) ?? [];
+      const todayPerf = perfByAccount.get(account.id) ?? [];
 
       const totalLikes = todayPerf.reduce((sum, p) => sum + p.likes, 0);
       const totalComments = todayPerf.reduce((sum, p) => sum + p.comments, 0);

@@ -13,14 +13,26 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "No video file" }, { status: 400 });
     }
 
-    await fs.mkdir(UPLOAD_DIR, { recursive: true });
+    if (file.size > 50 * 1024 * 1024) {
+      return NextResponse.json({ error: "50MB 초과" }, { status: 400 });
+    }
 
+    const buffer = Buffer.from(await file.arrayBuffer());
     const ext = path.extname(file.name) || ".mp4";
+
+    // Use R2 if configured, otherwise fall back to local
+    if (process.env.R2_ENDPOINT) {
+      const { uploadFile } = await import("@/lib/storage");
+      const key = `reels/${Date.now()}-${crypto.randomUUID()}${ext}`;
+      const url = await uploadFile(key, buffer, file.type || "video/mp4");
+      return NextResponse.json({ url, filename: key });
+    }
+
+    // Local fallback
+    await fs.mkdir(UPLOAD_DIR, { recursive: true });
     const id = crypto.randomBytes(8).toString("hex");
     const filename = `${id}${ext}`;
     const filePath = path.join(UPLOAD_DIR, filename);
-
-    const buffer = Buffer.from(await file.arrayBuffer());
     await fs.writeFile(filePath, buffer);
 
     const url = `/api/reels/file?name=${encodeURIComponent(filename)}`;

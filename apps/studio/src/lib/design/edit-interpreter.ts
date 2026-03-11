@@ -10,6 +10,7 @@
 
 import { callGptJson, callGptSafe } from "@/lib/llm";
 import { z } from "zod";
+import { sanitizeForSatori } from "./satori-sanitizer";
 import type {
   DesignBrief,
   DesignEditAction,
@@ -103,6 +104,7 @@ Rules:
 - Return ONLY the JSON object.`;
 
   const result = await callGptJson<ParsedEditResponse>(prompt, {
+    caller: "design",
     model: opts?.model ?? "gpt-4o-mini",
     temperature: 0.3,
     maxTokens: 1000,
@@ -285,17 +287,21 @@ Preserve the overall structure — only change what the instructions specify.
 Start with <div style="display:flex; and end with </div>.`;
 
   const raw = await callGptSafe(prompt, {
+    caller: "design",
     model: opts?.model ?? "gpt-4o-mini",
     temperature: 0.5,
     maxTokens: 2500,
   });
 
-  const modifiedHtml = raw.replace(/```html?\n?/g, "").replace(/```/g, "").trim();
+  const cleanedHtml = raw.replace(/```html?\n?/g, "").replace(/```/g, "").trim();
 
   // Validate: must start with <div and contain style=
-  if (!modifiedHtml.startsWith("<div") || !modifiedHtml.includes("style=")) {
+  if (!cleanedHtml.startsWith("<div") || !cleanedHtml.includes("style=")) {
     throw new Error("LLM returned invalid HTML — does not start with <div or missing styles");
   }
+
+  // Sanitize for Satori compatibility
+  const modifiedHtml = sanitizeForSatori(cleanedHtml);
 
   return {
     ...slide,

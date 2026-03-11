@@ -64,6 +64,7 @@ Requirements:
 Respond ONLY with the JSON object.`;
 
   return callGptJson<PipelineOutline>(prompt, {
+    caller: "pipeline",
     model: "gpt-4o-mini",
     temperature: 0.5,
     maxTokens: 2000,

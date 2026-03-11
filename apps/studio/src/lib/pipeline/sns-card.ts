@@ -64,7 +64,7 @@ Return JSON:
     }
   ]
 }`,
-    { model: "gpt-4o-mini", temperature: 0.6 },
+    { caller: "pipeline", model: "gpt-4o-mini", temperature: 0.6 },
   );
 
   return result.cards.slice(0, maxQuotes);

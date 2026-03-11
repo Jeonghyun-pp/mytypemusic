@@ -63,6 +63,7 @@ JSON으로 반환:
 최대 3개. JSON만 반환하세요.`;
 
     const result = await callGptJson(prompt, {
+      caller: "analytics",
       schema: topicsSchema,
       temperature: 0.3,
     });

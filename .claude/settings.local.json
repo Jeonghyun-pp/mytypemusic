@@ -200,7 +200,13 @@
       "WebFetch(domain:ootdai.vercel.app)",
       "Bash(set:*)",
       "Bash(git status:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "WebFetch(domain:mytypemusic.vercel.app)",
+      "Bash(git -C \"C:/Users/pjhic/Projects/Web_magazine\" status -- apps/studio/src/lib/trends/)",
+      "Bash(find /c/Users/pjhic/Projects/Web_magazine/apps/studio -type f \\\\\\( -name \"*.test.ts\" -o -name \"*.test.tsx\" -o -name \"*.spec.ts\" -o -name \"*.spec.tsx\" \\\\\\) 2>/dev/null | grep -v node_modules)",
+      "Bash(find /c/Users/pjhic/Projects/Web_magazine -maxdepth 3 \\\\\\( -name \"jest.config.*\" -o -name \"vitest.config.*\" -o -name \"test-setup.*\" -o -name \"setupTests.*\" \\\\\\) -type f 2>/dev/null | grep -v node_modules)"
     ]
   }
 }
