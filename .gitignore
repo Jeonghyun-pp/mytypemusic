@@ -24,6 +24,9 @@ desktop.ini
 *.swp
 *.swo
 
+# Claude Code local settings
+.claude/settings.local.json
+
 # Outputs (런 결과물)
 outputs/runs/
 
