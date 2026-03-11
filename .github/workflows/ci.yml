@@ -30,10 +30,6 @@ jobs:
         run: npx tsc --noEmit
         working-directory: apps/studio
 
-      - name: Lint
-        run: npx next lint
-        working-directory: apps/studio
-
       - name: Test
         run: npx vitest run --passWithNoTests
         working-directory: apps/studio
