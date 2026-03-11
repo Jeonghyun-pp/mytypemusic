@@ -15,7 +15,12 @@ jobs:
           node-version: 20
           cache: npm
 
-      - run: npm ci
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Install studio dependencies
+        run: npm ci
+        working-directory: apps/studio
 
       - name: Prisma generate
         run: npx prisma generate
