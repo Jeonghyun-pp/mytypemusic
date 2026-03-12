@@ -134,10 +134,76 @@ export default function AiSuggestions({ onQuickPost }: AiSuggestionsProps = {}) 
     }
   }
 
-  if (error) return null;
+  const noKeywords = !keywords || keywords.length === 0;
+  const noSuggestions = !data || data.suggestions.length === 0;
+
+  // Keyword bar is always rendered (even during loading/error)
+  const keywordBar = (
+    <div style={s.keywordBar}>
+      <div style={s.keywordRow}>
+        <span style={s.keywordLabel}>니치 키워드</span>
+        {!noKeywords ? (
+          <div style={s.keywordChips}>
+            {keywords.map((kw) => (
+              <span key={kw} style={s.keywordChip}>
+                {kw}
+                <button
+                  style={s.chipRemove}
+                  onClick={() => removeKeyword(kw)}
+                  title="삭제"
+                >
+                  &times;
+                </button>
+              </span>
+            ))}
+          </div>
+        ) : (
+          <span style={s.keywordEmpty}>
+            키워드를 설정하면 AI 주제 추천을 받을 수 있습니다
+          </span>
+        )}
+        <button
+          style={s.keywordEditBtn}
+          onClick={() => setShowKeywordEditor(!showKeywordEditor)}
+        >
+          {showKeywordEditor ? "닫기" : "편집"}
+        </button>
+      </div>
+
+      {showKeywordEditor && (
+        <div style={s.keywordEditor}>
+          <input
+            style={s.keywordInput}
+            value={keywordInput}
+            onChange={(e) => setKeywordInput(e.target.value)}
+            placeholder="예: 밴드음악, 인디밴드, 라이브공연, 페스티벌, 음악 리뷰"
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleSaveKeywords();
+            }}
+          />
+          <button
+            style={s.keywordSaveBtn}
+            onClick={handleSaveKeywords}
+            disabled={savingKeywords}
+          >
+            {savingKeywords ? "저장 중..." : "저장 & 새로고침"}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+
+  if (error) {
+    return (
+      <div style={s.wrapper}>
+        {keywordBar}
+      </div>
+    );
+  }
   if (loading) {
     return (
       <div style={s.wrapper}>
+        {keywordBar}
         <div style={s.header}>
           <span style={s.title}>AI 주제 추천</span>
           <span style={s.subtitle}>트렌드를 분석하고 있습니다...</span>
@@ -155,64 +221,10 @@ export default function AiSuggestions({ onQuickPost }: AiSuggestionsProps = {}) 
     );
   }
 
-  const noKeywords = !keywords || keywords.length === 0;
-  const noSuggestions = !data || data.suggestions.length === 0;
-
   return (
     <div style={s.wrapper}>
-      {/* ── Keywords bar ── */}
-      <div style={s.keywordBar}>
-        <div style={s.keywordRow}>
-          <span style={s.keywordLabel}>키워드</span>
-          {!noKeywords ? (
-            <div style={s.keywordChips}>
-              {keywords.map((kw) => (
-                <span key={kw} style={s.keywordChip}>
-                  {kw}
-                  <button
-                    style={s.chipRemove}
-                    onClick={() => removeKeyword(kw)}
-                    title="삭제"
-                  >
-                    &times;
-                  </button>
-                </span>
-              ))}
-            </div>
-          ) : (
-            <span style={s.keywordEmpty}>
-              키워드를 설정하면 AI 주제 추천을 받을 수 있습니다
-            </span>
-          )}
-          <button
-            style={s.keywordEditBtn}
-            onClick={() => setShowKeywordEditor(!showKeywordEditor)}
-          >
-            {showKeywordEditor ? "닫기" : "편집"}
-          </button>
-        </div>
-
-        {showKeywordEditor && (
-          <div style={s.keywordEditor}>
-            <input
-              style={s.keywordInput}
-              value={keywordInput}
-              onChange={(e) => setKeywordInput(e.target.value)}
-              placeholder="예: 밴드음악, 인디밴드, 라이브공연, 페스티벌, 음악 리뷰"
-              onKeyDown={(e) => {
-                if (e.key === "Enter") handleSaveKeywords();
-              }}
-            />
-            <button
-              style={s.keywordSaveBtn}
-              onClick={handleSaveKeywords}
-              disabled={savingKeywords}
-            >
-              {savingKeywords ? "저장 중..." : "저장 & 새로고침"}
-            </button>
-          </div>
-        )}
-      </div>
+      {/* ── Keywords bar (always visible) ── */}
+      {keywordBar}
 
       {/* ── No keywords message ── */}
       {noKeywords && (

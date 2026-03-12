@@ -16,6 +16,20 @@ interface MultiResult {
   carousel: { concept: string; slideCount: number; slideTopics: string[] };
 }
 
+interface TopicDraftItem {
+  id: string;
+  topic: string;
+  status: string;
+  sourceType: string;
+}
+
+interface SuggestionItem {
+  topic: string;
+  reasoning: string;
+}
+
+type TopicSource = "manual" | "workshop" | "suggestions";
+
 export default function CreateHub() {
   const searchParams = useSearchParams();
   const [topic, setTopic] = useState(searchParams.get("topic") ?? "");
@@ -24,12 +38,42 @@ export default function CreateHub() {
   const [generating, setGenerating] = useState(false);
   const [result, setResult] = useState<MultiResult | null>(null);
 
+  // Topic picker state
+  const [topicSource, setTopicSource] = useState<TopicSource>("manual");
+  const [workshopDrafts, setWorkshopDrafts] = useState<TopicDraftItem[]>([]);
+  const [suggestions, setSuggestions] = useState<SuggestionItem[]>([]);
+  const [loadingTopics, setLoadingTopics] = useState(false);
+
   useEffect(() => {
     fetch("/api/persona")
       .then((r) => (r.ok ? r.json() : []))
       .then((data: Persona[]) => setPersonas(data))
       .catch(() => {});
   }, []);
+
+  // Load workshop drafts
+  useEffect(() => {
+    if (topicSource === "workshop" && workshopDrafts.length === 0) {
+      setLoadingTopics(true);
+      fetch("/api/topics?limit=20")
+        .then((r) => r.json())
+        .then((d: { drafts: TopicDraftItem[] }) => setWorkshopDrafts(d.drafts))
+        .catch(() => {})
+        .finally(() => setLoadingTopics(false));
+    }
+  }, [topicSource, workshopDrafts.length]);
+
+  // Load AI suggestions
+  useEffect(() => {
+    if (topicSource === "suggestions" && suggestions.length === 0) {
+      setLoadingTopics(true);
+      fetch("/api/content/suggestions")
+        .then((r) => r.json())
+        .then((d: { suggestions: SuggestionItem[] }) => setSuggestions(d.suggestions ?? []))
+        .catch(() => {})
+        .finally(() => setLoadingTopics(false));
+    }
+  }, [topicSource, suggestions.length]);
 
   async function handleGenerate() {
     if (!topic.trim() || generating) return;
@@ -54,15 +98,106 @@ export default function CreateHub() {
         <p style={s.desc}>하나의 주제로 SNS 포스트, 블로그, 카드뉴스를 동시에 생성합니다.</p>
       </div>
 
-      {/* Input */}
+      {/* Topic source tabs */}
+      <div style={s.sourceTabs}>
+        <button
+          style={{ ...s.sourceTab, ...(topicSource === "manual" ? s.sourceTabActive : {}) }}
+          onClick={() => setTopicSource("manual")}
+        >
+          직접 입력
+        </button>
+        <button
+          style={{ ...s.sourceTab, ...(topicSource === "workshop" ? s.sourceTabActive : {}) }}
+          onClick={() => setTopicSource("workshop")}
+        >
+          보관함에서 선택
+        </button>
+        <button
+          style={{ ...s.sourceTab, ...(topicSource === "suggestions" ? s.sourceTabActive : {}) }}
+          onClick={() => setTopicSource("suggestions")}
+        >
+          AI 추천에서 선택
+        </button>
+      </div>
+
+      {/* Input area */}
       <div style={s.formCard}>
-        <input
-          style={s.input}
-          placeholder="주제를 입력하세요 (예: 2026 SNS 트렌드 전망)"
-          value={topic}
-          onChange={(e) => setTopic(e.target.value)}
-          onKeyDown={(e) => { if (e.key === "Enter") handleGenerate(); }}
-        />
+        {topicSource === "manual" && (
+          <input
+            style={s.input}
+            placeholder="주제를 입력하세요 (예: 실리카겔 'NO PAIN' 기타 톤 분석)"
+            value={topic}
+            onChange={(e) => setTopic(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") handleGenerate(); }}
+          />
+        )}
+
+        {topicSource === "workshop" && (
+          <div style={s.topicPicker}>
+            {loadingTopics ? (
+              <div style={s.pickerEmpty}>불러오는 중...</div>
+            ) : workshopDrafts.length === 0 ? (
+              <div style={s.pickerEmpty}>
+                보관함에 저장된 주제가 없습니다.{" "}
+                <Link href="/studio/workshop" style={{ color: "var(--accent)" }}>Workshop으로 이동</Link>
+              </div>
+            ) : (
+              <div style={s.pickerList}>
+                {workshopDrafts.map((d) => (
+                  <button
+                    key={d.id}
+                    style={{
+                      ...s.pickerItem,
+                      ...(topic === d.topic ? s.pickerItemActive : {}),
+                    }}
+                    onClick={() => setTopic(d.topic)}
+                  >
+                    <span style={s.pickerTopic}>{d.topic}</span>
+                    <span style={s.pickerBadge}>
+                      {d.sourceType === "suggestion" ? "AI 추천" : d.sourceType === "manual" ? "직접" : d.sourceType}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {topicSource === "suggestions" && (
+          <div style={s.topicPicker}>
+            {loadingTopics ? (
+              <div style={s.pickerEmpty}>트렌드를 분석하고 있습니다...</div>
+            ) : suggestions.length === 0 ? (
+              <div style={s.pickerEmpty}>
+                키워드를 먼저 설정하세요. 대시보드에서 니치 키워드를 등록하면 AI 추천을 받을 수 있습니다.
+              </div>
+            ) : (
+              <div style={s.pickerList}>
+                {suggestions.map((sg, i) => (
+                  <button
+                    key={i}
+                    style={{
+                      ...s.pickerItem,
+                      ...(topic === sg.topic ? s.pickerItemActive : {}),
+                    }}
+                    onClick={() => setTopic(sg.topic)}
+                  >
+                    <span style={s.pickerTopic}>{sg.topic}</span>
+                    <span style={s.pickerReasoning}>{sg.reasoning}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Selected topic display (for workshop/suggestions) */}
+        {topicSource !== "manual" && topic && (
+          <div style={s.selectedTopic}>
+            선택된 주제: <strong>{topic}</strong>
+          </div>
+        )}
+
         <div style={s.row}>
           {personas.length > 0 && (
             <select style={s.select} value={personaId} onChange={(e) => setPersonaId(e.target.value)}>
@@ -180,5 +315,86 @@ const s = {
     textDecoration: "none",
     textAlign: "center" as const,
     transition: "all 0.15s",
+  },
+
+  // Topic source tabs
+  sourceTabs: {
+    display: "flex",
+    gap: 4,
+  },
+  sourceTab: {
+    padding: "6px 14px",
+    borderRadius: 8,
+    border: "1px solid var(--border-light)",
+    background: "var(--bg-card)",
+    color: "var(--text-muted)",
+    fontSize: 12,
+    fontWeight: 500,
+    cursor: "pointer",
+    transition: "all 0.15s",
+  },
+  sourceTabActive: {
+    background: "var(--accent-light)",
+    color: "var(--accent)",
+    borderColor: "var(--accent)",
+  },
+
+  // Topic picker
+  topicPicker: {
+    maxHeight: 240,
+    overflowY: "auto" as const,
+    border: "1px solid var(--border-light)",
+    borderRadius: "var(--radius-sm)",
+  },
+  pickerList: {
+    display: "flex",
+    flexDirection: "column" as const,
+  },
+  pickerItem: {
+    display: "flex",
+    flexDirection: "column" as const,
+    gap: 2,
+    padding: "10px 14px",
+    border: "none",
+    borderBottom: "1px solid var(--border-light)",
+    background: "transparent",
+    cursor: "pointer",
+    textAlign: "left" as const,
+    transition: "background 0.1s",
+    width: "100%",
+  },
+  pickerItemActive: {
+    background: "var(--accent-light)",
+  },
+  pickerTopic: {
+    fontSize: 13,
+    fontWeight: 600,
+    color: "var(--text)",
+  },
+  pickerBadge: {
+    fontSize: 10,
+    color: "var(--text-muted)",
+    padding: "1px 6px",
+    borderRadius: 4,
+    background: "var(--bg-input)",
+    alignSelf: "flex-start" as const,
+  },
+  pickerReasoning: {
+    fontSize: 11,
+    color: "var(--text-muted)",
+    lineHeight: 1.4,
+  },
+  pickerEmpty: {
+    padding: 20,
+    textAlign: "center" as const,
+    color: "var(--text-muted)",
+    fontSize: 13,
+  },
+  selectedTopic: {
+    padding: "8px 12px",
+    borderRadius: 6,
+    background: "var(--accent-light)",
+    color: "var(--accent)",
+    fontSize: 13,
   },
 };
