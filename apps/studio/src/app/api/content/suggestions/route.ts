@@ -3,8 +3,6 @@ import { callGptJson } from "@/lib/llm";
 import { fetchTrends, formatTrendsForPrompt } from "@/lib/trends";
 import { json, serverError } from "@/lib/studio";
 import { z } from "zod";
-import { readFile } from "fs/promises";
-import path from "path";
 
 const SuggestionItemSchema = z.object({
   topic: z.string(),
@@ -33,15 +31,10 @@ let cache: CacheEntry | null = null;
 const CACHE_TTL = 30 * 60 * 1000;
 
 async function loadNicheKeywords(): Promise<string[]> {
-  try {
-    const raw = await readFile(
-      path.join(process.cwd(), ".data", "niche-keywords.json"),
-      "utf-8",
-    );
-    return (JSON.parse(raw) as { keywords: string[] }).keywords;
-  } catch {
-    return [];
-  }
+  const row = await prisma.setting.findUnique({ where: { key: "niche-keywords" } });
+  if (!row) return [];
+  const data = row.value as { keywords?: string[] };
+  return data.keywords ?? [];
 }
 
 /**

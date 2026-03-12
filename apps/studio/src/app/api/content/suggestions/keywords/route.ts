@@ -1,32 +1,21 @@
+import { prisma } from "@/lib/db";
 import { json, serverError } from "@/lib/studio";
-import { readFile, writeFile, mkdir } from "fs/promises";
-import path from "path";
 
-const DATA_DIR = path.join(process.cwd(), ".data");
-const KEYWORDS_FILE = path.join(DATA_DIR, "niche-keywords.json");
-
-interface KeywordsData {
-  keywords: string[];
-  updatedAt: string;
-}
+const SETTING_KEY = "niche-keywords";
 
 async function loadKeywords(): Promise<string[]> {
-  try {
-    const raw = await readFile(KEYWORDS_FILE, "utf-8");
-    const data = JSON.parse(raw) as KeywordsData;
-    return data.keywords;
-  } catch {
-    return [];
-  }
+  const row = await prisma.setting.findUnique({ where: { key: SETTING_KEY } });
+  if (!row) return [];
+  const data = row.value as { keywords?: string[] };
+  return data.keywords ?? [];
 }
 
 async function saveKeywords(keywords: string[]): Promise<void> {
-  await mkdir(DATA_DIR, { recursive: true });
-  const data: KeywordsData = {
-    keywords,
-    updatedAt: new Date().toISOString(),
-  };
-  await writeFile(KEYWORDS_FILE, JSON.stringify(data, null, 2), "utf-8");
+  await prisma.setting.upsert({
+    where: { key: SETTING_KEY },
+    update: { value: { keywords } },
+    create: { key: SETTING_KEY, value: { keywords } },
+  });
 }
 
 /** GET /api/content/suggestions/keywords */
