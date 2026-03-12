@@ -5,13 +5,11 @@ import { youtubeProvider } from "./youtube";
 import { googleTrendsProvider } from "./google";
 import { spotifyProvider } from "./spotify";
 import { redditProvider } from "./reddit";
-import { instagramRefProvider } from "./instagram-ref";
 import { logger } from "@/lib/logger";
 import { cacheGetJSON, cacheSetJSON } from "@/lib/redis";
 
 export type { TrendItem } from "./types";
 export type { EnrichedTrendItem } from "./enrich";
-export { enrichTrends } from "./enrich";
 
 // ---------------------------------------------------------------------------
 // Cache — Redis (shared across instances) with in-memory L1 for same-process
@@ -41,7 +39,6 @@ function trendCacheKey(kh: string): string {
 // ---------------------------------------------------------------------------
 
 const globalProviders = [
-  instagramRefProvider,
   googleTrendsProvider,
   youtubeProvider,
   spotifyProvider,
@@ -80,10 +77,23 @@ export async function fetchTrends(
     return { global: redisHit.items, niche: redisHit.nicheItems };
   }
 
+  // Lazy-load Instagram ref provider (heavy deps — avoid module-level import)
+  let igProvider: typeof globalProviders[number] | null = null;
+  try {
+    const mod = await import("./instagram-ref");
+    igProvider = mod.instagramRefProvider;
+  } catch {
+    logger.warn("instagram-ref provider unavailable (DB migration may be pending)");
+  }
+
+  const allGlobalProviders = igProvider
+    ? [igProvider, ...globalProviders]
+    : globalProviders;
+
   // Fetch global + niche in parallel; pass keywords to global providers too
   const [globalResults, nicheResults] = await Promise.all([
     Promise.allSettled(
-      globalProviders.map((p) => p.fetch({ keywords: kws, geo: "KR" })),
+      allGlobalProviders.map((p) => p.fetch({ keywords: kws, geo: "KR" })),
     ),
     kws.length > 0
       ? Promise.allSettled(
@@ -97,7 +107,7 @@ export async function fetchTrends(
     if (r.status === "fulfilled") {
       globalItems.push(...r.value);
     } else {
-      logger.warn({ source: globalProviders[i]?.name, error: String(r.reason) }, "trend fetch failed");
+      logger.warn({ source: allGlobalProviders[i]?.name, error: String(r.reason) }, "trend fetch failed");
     }
   });
 

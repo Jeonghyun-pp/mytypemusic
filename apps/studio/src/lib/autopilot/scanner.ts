@@ -2,7 +2,7 @@ import { prisma } from "@/lib/db";
 import { callGptJson } from "@/lib/llm";
 import { createLogger } from "@/lib/logger";
 import { notifySlack } from "@/lib/notify";
-import { fetchTrends, formatEnrichedTrendsForPrompt, enrichTrends } from "@/lib/trends";
+import { fetchTrends, formatEnrichedTrendsForPrompt } from "@/lib/trends";
 import { z } from "zod";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -206,10 +206,12 @@ export async function generateProposals(configId: string): Promise<number> {
     buildPersonaContext(config.personaId),
   ]);
 
-  // Enrich trends with real-time context (non-fatal — fall back to raw trends)
-  let enrichedGlobal: import("@/lib/trends").EnrichedTrendItem[];
-  let enrichedNiche: import("@/lib/trends").EnrichedTrendItem[];
+  // Enrich trends with real-time context (non-fatal — lazy import to avoid
+  // heavy deps crashing the module at load time)
+  let enrichedGlobal: import("@/lib/trends/enrich").EnrichedTrendItem[];
+  let enrichedNiche: import("@/lib/trends/enrich").EnrichedTrendItem[];
   try {
+    const { enrichTrends } = await import("@/lib/trends/enrich");
     const allRaw = [...globalTrends, ...nicheTrends];
     const enriched = await enrichTrends(allRaw);
     enrichedGlobal = enriched.filter((t) => !nicheTrends.some((n) => n.title === t.title));
