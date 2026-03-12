@@ -9,14 +9,20 @@ const SourceSchema = z.object({
   url: z.string().optional(),
 });
 
+// LLM sometimes returns an object instead of a string for format fields — coerce to string
+const coerceString = z.preprocess(
+  (v) => (typeof v === "object" && v !== null ? JSON.stringify(v) : v),
+  z.string(),
+);
+
 const SuggestionItemSchema = z.object({
   topic: z.string(),
   reasoning: z.string(),
   sources: z.array(SourceSchema).optional().default([]),
   formats: z.object({
-    sns: z.string(),
-    blog: z.string(),
-    carousel: z.string(),
+    sns: coerceString,
+    blog: coerceString,
+    carousel: coerceString,
   }),
 });
 
