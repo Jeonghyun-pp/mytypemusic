@@ -20,9 +20,8 @@ interface Suggestion {
 }
 
 interface SuggestionsResponse {
-  general: Suggestion[];
-  niche: Suggestion[];
-  nicheKeywords: string[];
+  suggestions: Suggestion[];
+  keywords: string[];
 }
 
 interface AiSuggestionsProps {
@@ -33,6 +32,7 @@ export default function AiSuggestions({ onQuickPost }: AiSuggestionsProps = {}) 
   const [data, setData] = useState<SuggestionsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [savingTopicId, setSavingTopicId] = useState<number | null>(null);
 
   // Keyword editor state
   const [showKeywordEditor, setShowKeywordEditor] = useState(false);
@@ -46,14 +46,17 @@ export default function AiSuggestions({ onQuickPost }: AiSuggestionsProps = {}) 
     fetch("/api/content/suggestions")
       .then((r) => (r.ok ? r.json() : Promise.reject()))
       .then((d: SuggestionsResponse) => {
-        // Backward compat: old API returned { suggestions: [...] }
-        if (!d.general && (d as unknown as { suggestions: Suggestion[] }).suggestions) {
-          const old = d as unknown as { suggestions: Suggestion[] };
-          setData({ general: old.suggestions, niche: [], nicheKeywords: [] });
+        // Backward compat: old API returned { general, niche }
+        if (!d.suggestions && (d as unknown as { general: Suggestion[] }).general) {
+          const old = d as unknown as { general: Suggestion[]; niche: Suggestion[]; nicheKeywords: string[] };
+          setData({
+            suggestions: [...(old.niche ?? []), ...(old.general ?? [])],
+            keywords: old.nicheKeywords ?? [],
+          });
         } else {
           setData(d);
         }
-        setKeywords(d.nicheKeywords ?? []);
+        setKeywords(d.keywords ?? []);
       })
       .catch(() => setError(true))
       .finally(() => setLoading(false));
@@ -92,7 +95,6 @@ export default function AiSuggestions({ onQuickPost }: AiSuggestionsProps = {}) 
         const d = await res.json();
         setKeywords(d.keywords);
         setShowKeywordEditor(false);
-        // Reload suggestions with new keywords
         loadSuggestions();
       }
     } finally {
@@ -104,7 +106,6 @@ export default function AiSuggestions({ onQuickPost }: AiSuggestionsProps = {}) 
     const next = keywords.filter((k) => k !== kw);
     setKeywords(next);
     setKeywordInput(next.join(", "));
-    // Auto-save
     fetch("/api/content/suggestions/keywords", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -112,12 +113,33 @@ export default function AiSuggestions({ onQuickPost }: AiSuggestionsProps = {}) 
     }).then(() => loadSuggestions());
   }
 
+  async function handleSaveTopic(sg: Suggestion, index: number) {
+    setSavingTopicId(index);
+    try {
+      const res = await fetch("/api/topics", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          topic: sg.topic,
+          reasoning: sg.reasoning,
+          sourceType: "suggestion",
+          sourceData: sg,
+          trendSources: sg.sources?.map((s) => s.label) ?? [],
+          formats: sg.formats,
+        }),
+      });
+      if (!res.ok) throw new Error("Failed to save");
+    } finally {
+      setSavingTopicId(null);
+    }
+  }
+
   if (error) return null;
   if (loading) {
     return (
       <div style={s.wrapper}>
         <div style={s.header}>
-          <span style={s.title}>AI 오늘의 제안</span>
+          <span style={s.title}>AI 주제 추천</span>
           <span style={s.subtitle}>트렌드를 분석하고 있습니다...</span>
         </div>
         <div style={s.grid}>
@@ -133,15 +155,16 @@ export default function AiSuggestions({ onQuickPost }: AiSuggestionsProps = {}) 
     );
   }
 
-  if (!data || (data.general.length === 0 && data.niche.length === 0)) return null;
+  const noKeywords = !keywords || keywords.length === 0;
+  const noSuggestions = !data || data.suggestions.length === 0;
 
   return (
     <div style={s.wrapper}>
-      {/* ── Niche keywords bar ── */}
+      {/* ── Keywords bar ── */}
       <div style={s.keywordBar}>
         <div style={s.keywordRow}>
-          <span style={s.keywordLabel}>니치 키워드</span>
-          {keywords.length > 0 ? (
+          <span style={s.keywordLabel}>키워드</span>
+          {!noKeywords ? (
             <div style={s.keywordChips}>
               {keywords.map((kw) => (
                 <span key={kw} style={s.keywordChip}>
@@ -158,7 +181,7 @@ export default function AiSuggestions({ onQuickPost }: AiSuggestionsProps = {}) 
             </div>
           ) : (
             <span style={s.keywordEmpty}>
-              키워드를 설정하면 전문 분야 맞춤 제안을 받을 수 있습니다
+              키워드를 설정하면 AI 주제 추천을 받을 수 있습니다
             </span>
           )}
           <button
@@ -191,31 +214,32 @@ export default function AiSuggestions({ onQuickPost }: AiSuggestionsProps = {}) 
         )}
       </div>
 
-      {/* ── Niche suggestions ── */}
-      {data.niche.length > 0 && (
-        <div style={s.section}>
-          <div style={s.header}>
-            <span style={s.title}>전문 분야 제안</span>
-            <span style={s.subtitle}>{keywords.join(", ")} 기반 맞춤 추천</span>
-          </div>
-          <div className="animate-stagger" style={s.grid}>
-            {data.niche.map((sg, i) => (
-              <SuggestionCard key={`niche-${i}`} sg={sg} onQuickPost={onQuickPost} accent />
-            ))}
-          </div>
+      {/* ── No keywords message ── */}
+      {noKeywords && (
+        <div style={s.emptyState}>
+          키워드를 설정하면 실시간 트렌드 기반 AI 주제 추천을 받을 수 있습니다.
+          <br />
+          위의 &quot;편집&quot; 버튼을 눌러 키워드를 추가해보세요.
         </div>
       )}
 
-      {/* ── General suggestions ── */}
-      {data.general.length > 0 && (
+      {/* ── Suggestions grid ── */}
+      {!noKeywords && !noSuggestions && (
         <div style={s.section}>
           <div style={s.header}>
-            <span style={s.title}>트렌드 제안</span>
-            <span style={s.subtitle}>실시간 트렌드 기반 추천</span>
+            <span style={s.title}>AI 주제 추천</span>
+            <span style={s.subtitle}>{keywords.join(", ")} + 실시간 트렌드 기반</span>
           </div>
           <div className="animate-stagger" style={s.grid}>
-            {data.general.map((sg, i) => (
-              <SuggestionCard key={`general-${i}`} sg={sg} onQuickPost={onQuickPost} />
+            {data.suggestions.map((sg, i) => (
+              <SuggestionCard
+                key={i}
+                sg={sg}
+                index={i}
+                onQuickPost={onQuickPost}
+                onSave={handleSaveTopic}
+                saving={savingTopicId === i}
+              />
             ))}
           </div>
         </div>
@@ -228,15 +252,21 @@ export default function AiSuggestions({ onQuickPost }: AiSuggestionsProps = {}) 
 
 function SuggestionCard({
   sg,
+  index,
   onQuickPost,
-  accent,
+  onSave,
+  saving,
 }: {
   sg: Suggestion;
+  index: number;
   onQuickPost?: (text: string, hashtags: string) => void;
-  accent?: boolean;
+  onSave: (sg: Suggestion, index: number) => void;
+  saving: boolean;
 }) {
+  const [saved, setSaved] = useState(false);
+
   return (
-    <div className="card-hover" style={{ ...s.card, ...(accent ? s.cardAccent : {}) }}>
+    <div className="card-hover" style={s.card}>
       <div style={s.topicTitle}>{sg.topic}</div>
       <div style={s.reasoning}>{sg.reasoning}</div>
       {sg.sources && sg.sources.length > 0 && (
@@ -266,6 +296,22 @@ function SuggestionCard({
         <div style={s.formatText}>{sg.formats.sns}</div>
       </div>
       <div style={s.actions}>
+        <button
+          style={{
+            ...s.actionBtn,
+            ...s.saveBtn,
+            cursor: saving || saved ? "default" : "pointer",
+            opacity: saved ? 0.6 : 1,
+          }}
+          onClick={() => {
+            if (saving || saved) return;
+            onSave(sg, index);
+            setSaved(true);
+          }}
+          disabled={saving || saved}
+        >
+          {saving ? "저장 중..." : saved ? "보관됨" : "보관"}
+        </button>
         <Link
           href={`/studio/design?quick=1&topic=${encodeURIComponent(sg.topic)}&carousel=${encodeURIComponent(sg.formats.carousel)}`}
           style={s.actionBtn}
@@ -349,9 +395,6 @@ const s = {
     flexDirection: "column" as const,
     gap: 8,
   },
-  cardAccent: {
-    borderLeft: "3px solid var(--accent)",
-  },
   topicTitle: {
     fontSize: 14,
     fontWeight: 600,
@@ -429,6 +472,21 @@ const s = {
     textDecoration: "none",
     textAlign: "center" as const,
     transition: "all 0.15s",
+  },
+  saveBtn: {
+    background: "var(--accent-light)",
+    color: "var(--accent)",
+    borderColor: "var(--accent)",
+  },
+  emptyState: {
+    padding: "24px 16px",
+    textAlign: "center" as const,
+    color: "var(--text-muted)",
+    fontSize: 13,
+    lineHeight: 1.6,
+    background: "var(--bg-card)",
+    borderRadius: "var(--radius-sm)",
+    border: "1px dashed var(--border)",
   },
 
   // Keyword bar

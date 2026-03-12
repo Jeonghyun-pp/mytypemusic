@@ -770,12 +770,63 @@ model PipelineRun {
   updatedAt       DateTime @updatedAt
 
   blogPost        BlogPost?
+  topicDraft      TopicDraft?
 
   @@index([personaId])
   @@index([contentType])
   @@index([status])
   @@index([feedbackStatus])
   @@map("pipeline_runs")
+}
+
+// ─── Topic Workshop ──────────────────────────────────
+
+model TopicDraft {
+  id              String   @id @default(uuid())
+  topic           String
+  angle           String   @default("")
+  reasoning       String   @default("") @db.Text
+  contentType     String   @default("blog") // blog | sns | carousel | review
+  status          String   @default("saved") // saved | refining | refined | sent
+
+  // Origin tracking
+  sourceType      String   @default("manual") // suggestion | topic-intelligence | autopilot | manual
+  sourceData      Json?    // original SuggestionItem or TopicBrief snapshot
+
+  // Enriched fields (updated by AI chat)
+  trendSources    String[] @default([])
+  relatedEntities String[] @default([])
+  formats         Json?    // { sns, blog, carousel } format previews
+
+  // Connections
+  personaId       String?
+  pipelineRunId   String?  @unique
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  messages        TopicMessage[]
+  pipelineRun     PipelineRun? @relation(fields: [pipelineRunId], references: [id])
+
+  @@index([status])
+  @@index([createdAt])
+  @@map("topic_drafts")
+}
+
+model TopicMessage {
+  id           String     @id @default(uuid())
+  topicDraftId String
+  draft        TopicDraft @relation(fields: [topicDraftId], references: [id], onDelete: Cascade)
+  role         String     // "user" | "assistant"
+  content      String     @db.Text
+
+  // If assistant message, store the updated topic fields it produced
+  topicUpdate  Json?      // { topic?, angle?, reasoning?, formats?, trendSources?, relatedEntities? }
+
+  createdAt    DateTime   @default(now())
+
+  @@index([topicDraftId])
+  @@map("topic_messages")
 }
 
 model ImageGenHistory {

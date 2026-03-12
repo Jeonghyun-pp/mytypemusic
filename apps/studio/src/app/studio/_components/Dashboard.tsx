@@ -231,6 +231,19 @@ export default function Dashboard() {
       )}
 
       {/* 2. AI 제안 — 다음에 뭘 만들까 */}
+      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: -8 }}>
+        <Link
+          href="/studio/workshop"
+          style={{
+            fontSize: 12,
+            fontWeight: 500,
+            color: "var(--accent)",
+            textDecoration: "none",
+          }}
+        >
+          Workshop (주제 보관함) →
+        </Link>
+      </div>
       <AiSuggestions
         onQuickPost={(text, hashtags) => {
           setComposerText(text);

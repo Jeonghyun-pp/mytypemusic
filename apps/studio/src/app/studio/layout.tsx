@@ -28,6 +28,7 @@ const NAV_GROUPS = [
     items: [
       { label: "Calendar", href: "/studio/calendar" },
       { label: "Plan", href: "/studio/plan" },
+      { label: "Workshop", href: "/studio/workshop" },
       { label: "Research", href: "/studio/research" },
       { label: "Database", href: "/studio/database" },
     ],
