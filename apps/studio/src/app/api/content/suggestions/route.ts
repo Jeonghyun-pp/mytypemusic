@@ -9,20 +9,14 @@ const SourceSchema = z.object({
   url: z.string().optional(),
 });
 
-// LLM sometimes returns an object instead of a string for format fields — coerce to string
-const coerceString = z.preprocess(
-  (v) => (typeof v === "object" && v !== null ? JSON.stringify(v) : v),
-  z.string(),
-);
-
 const SuggestionItemSchema = z.object({
   topic: z.string(),
   reasoning: z.string(),
   sources: z.array(SourceSchema).optional().default([]),
   formats: z.object({
-    sns: coerceString,
-    blog: coerceString,
-    carousel: coerceString,
+    sns: z.string(),
+    blog: z.string(),
+    carousel: z.string(),
   }),
 });
 
@@ -30,20 +24,27 @@ const SuggestionSchema = z.object({
   suggestions: z.array(SuggestionItemSchema),
 });
 
-interface SuggestionSource {
-  label: string;
-  url?: string;
+type SuggestionItem = z.infer<typeof SuggestionItemSchema>;
+
+/** LLM sometimes returns objects instead of strings for format fields — normalize */
+function normalizeSuggestions(raw: unknown): unknown {
+  const obj = raw as { suggestions?: Array<Record<string, unknown>> };
+  if (!obj?.suggestions) return { suggestions: [] };
+  for (const s of obj.suggestions) {
+    const formats = s.formats as Record<string, unknown> | undefined;
+    if (formats) {
+      formats.sns = coerceStr(formats.sns);
+      formats.blog = coerceStr(formats.blog);
+      formats.carousel = coerceStr(formats.carousel);
+    }
+  }
+  return obj;
 }
 
-interface SuggestionItem {
-  topic: string;
-  reasoning: string;
-  sources?: SuggestionSource[];
-  formats: {
-    sns: string;
-    blog: string;
-    carousel: string;
-  };
+function coerceStr(v: unknown): string {
+  if (typeof v === "string") return v;
+  if (v && typeof v === "object") return JSON.stringify(v);
+  return "";
 }
 
 // In-memory cache (30 min) — separate for general and niche
@@ -189,26 +190,33 @@ Return JSON:
 }`;
 
       const [generalRes, nicheRes] = await Promise.allSettled([
-        callGptJson(generalPrompt, { caller: "suggestions", schema: SuggestionSchema, maxTokens: 1500, timeoutMs: 25_000 }),
-        callGptJson(nichePrompt, { caller: "suggestions", schema: SuggestionSchema, maxTokens: 1500, timeoutMs: 25_000 }),
+        callGptJson(generalPrompt, { caller: "suggestions", maxTokens: 1500, timeoutMs: 25_000 }),
+        callGptJson(nichePrompt, { caller: "suggestions", maxTokens: 1500, timeoutMs: 25_000 }),
       ]);
 
       if (generalRes.status === "rejected") console.error("[suggestions] general LLM failed:", generalRes.reason);
       if (nicheRes.status === "rejected") console.error("[suggestions] niche LLM failed:", nicheRes.reason);
 
+      const generalParsed = generalRes.status === "fulfilled"
+        ? SuggestionSchema.parse(normalizeSuggestions(generalRes.value))
+        : { suggestions: [] as SuggestionItem[] };
+      const nicheParsed = nicheRes.status === "fulfilled"
+        ? SuggestionSchema.parse(normalizeSuggestions(nicheRes.value))
+        : { suggestions: [] as SuggestionItem[] };
+
       cache = {
-        general: generalRes.status === "fulfilled" ? generalRes.value.suggestions : [],
-        niche: nicheRes.status === "fulfilled" ? nicheRes.value.suggestions : [],
+        general: generalParsed.suggestions,
+        niche: nicheParsed.suggestions,
         nicheKeywords: allNicheKws,
         at: Date.now(),
       };
     } else {
-      const generalResult = await callGptJson(generalPrompt, {
+      const raw = await callGptJson(generalPrompt, {
         caller: "suggestions",
-        schema: SuggestionSchema,
         maxTokens: 1500,
         timeoutMs: 25_000,
       });
+      const generalResult = SuggestionSchema.parse(normalizeSuggestions(raw));
 
       cache = {
         general: generalResult.suggestions,
