@@ -1,12 +1,18 @@
 import { prisma } from "@/lib/db";
 import { callGptJson } from "@/lib/llm";
-import { fetchTrends, formatTrendsForPrompt } from "@/lib/trends";
+import { fetchTrends, formatEnrichedTrendsForPrompt, enrichTrends } from "@/lib/trends";
 import { json, serverError } from "@/lib/studio";
 import { z } from "zod";
+
+const SourceSchema = z.object({
+  label: z.string(),
+  url: z.string().optional(),
+});
 
 const SuggestionItemSchema = z.object({
   topic: z.string(),
   reasoning: z.string(),
+  sources: z.array(SourceSchema).optional().default([]),
   formats: z.object({
     sns: z.string(),
     blog: z.string(),
@@ -18,7 +24,21 @@ const SuggestionSchema = z.object({
   suggestions: z.array(SuggestionItemSchema),
 });
 
-type SuggestionItem = z.infer<typeof SuggestionItemSchema>;
+interface SuggestionSource {
+  label: string;
+  url?: string;
+}
+
+interface SuggestionItem {
+  topic: string;
+  reasoning: string;
+  sources?: SuggestionSource[];
+  formats: {
+    sns: string;
+    blog: string;
+    carousel: string;
+  };
+}
 
 // In-memory cache (30 min) — separate for general and niche
 interface CacheEntry {
@@ -74,6 +94,12 @@ export async function GET() {
       allNicheKws.length > 0 ? allNicheKws : undefined,
     );
 
+    // Enrich trends with real-time context
+    const allRaw = [...globalTrends, ...nicheTrends];
+    const enriched = await enrichTrends(allRaw);
+    const enrichedGlobal = enriched.filter((t) => !nicheTrends.some((n) => n.title === t.title));
+    const enrichedNiche = enriched.filter((t) => nicheTrends.some((n) => n.title === t.title));
+
     // Recent publications for personalization
     const recentPubs = await prisma.publication.findMany({
       where: { status: "published" },
@@ -95,7 +121,7 @@ export async function GET() {
         : "";
 
     // ── General line ──────────────────────────────────
-    const generalTrendContext = formatTrendsForPrompt(globalTrends, []);
+    const generalTrendContext = formatEnrichedTrendsForPrompt(enrichedGlobal, []);
     const generalPrompt = `You are a content strategist for a Korean social media brand.
 
 ${generalTrendContext}
@@ -104,6 +130,7 @@ ${topTopicsSection}
 
 위 실시간 트렌드를 분석하여, 지금 가장 시의적절한 콘텐츠 주제 3개를 제안하세요.
 다양한 분야(문화, 사회, 라이프스타일 등)에서 골고루 선정하세요.
+각 제안의 근거가 된 트렌드 데이터의 출처(sources)를 반드시 포함하세요. 트렌드 항목에 URL이 있으면 그대로 포함하세요.
 
 Return JSON:
 {
@@ -111,6 +138,7 @@ Return JSON:
     {
       "topic": "주제 제목 (Korean, concise)",
       "reasoning": "왜 지금 이 주제인지 1문장 (Korean)",
+      "sources": [{"label": "출처 설명 (예: Google 트렌드 — 검색어)", "url": "원문 URL (있으면)"}],
       "formats": {
         "sns": "SNS 포스트 미리보기 (1-2줄, Korean, 해시태그 포함)",
         "blog": "블로그 아웃라인 미리보기 (제목 + 핵심 포인트, Korean)",
@@ -124,7 +152,7 @@ Return JSON:
     let nicheResults: SuggestionItem[] = [];
 
     if (allNicheKws.length > 0) {
-      const nicheTrendContext = formatTrendsForPrompt(globalTrends, nicheTrends);
+      const nicheTrendContext = formatEnrichedTrendsForPrompt(enrichedGlobal, enrichedNiche);
       const nichePrompt = `You are a content strategist for a Korean indie/band music web magazine.
 전문 분야: ${allNicheKws.join(", ")}
 
@@ -136,6 +164,7 @@ ${topTopicsSection}
 
 위 트렌드와 전문 분야 키워드를 교차 분석하여, 지금 가장 시의적절한 음악/밴드 관련 콘텐츠 주제 3개를 제안하세요.
 반드시 전문 분야(${allNicheKws.join(", ")})와 관련된 주제만 제안하세요.
+각 제안의 근거가 된 트렌드 데이터의 출처(sources)를 반드시 포함하세요. 트렌드 항목에 URL이 있으면 그대로 포함하세요.
 
 Return JSON:
 {
@@ -143,6 +172,7 @@ Return JSON:
     {
       "topic": "주제 제목 (Korean, concise)",
       "reasoning": "왜 지금 이 주제인지 1문장 (Korean)",
+      "sources": [{"label": "출처 설명 (예: Spotify 신보 — 앨범명)", "url": "원문 URL (있으면)"}],
       "formats": {
         "sns": "SNS 포스트 미리보기 (1-2줄, Korean, 해시태그 포함)",
         "blog": "블로그 아웃라인 미리보기 (제목 + 핵심 포인트, Korean)",

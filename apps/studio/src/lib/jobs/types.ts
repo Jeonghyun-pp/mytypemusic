@@ -10,7 +10,8 @@ export type JobType =
   | "daily_reset"
   | "analytics_collect"
   | "persona_learn"
-  | "onboard_analyze";
+  | "onboard_analyze"
+  | "reference_feed_sync";
 
 export type JobStatus =
   | "pending"

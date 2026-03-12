@@ -3,9 +3,15 @@
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 
+interface SuggestionSource {
+  label: string;
+  url?: string;
+}
+
 interface Suggestion {
   topic: string;
   reasoning: string;
+  sources?: SuggestionSource[];
   formats: {
     sns: string;
     blog: string;
@@ -233,6 +239,28 @@ function SuggestionCard({
     <div className="card-hover" style={{ ...s.card, ...(accent ? s.cardAccent : {}) }}>
       <div style={s.topicTitle}>{sg.topic}</div>
       <div style={s.reasoning}>{sg.reasoning}</div>
+      {sg.sources && sg.sources.length > 0 && (
+        <div style={s.sourcesRow}>
+          {sg.sources.map((src, i) =>
+            src.url ? (
+              <a
+                key={i}
+                href={src.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={s.sourceLink}
+                title={src.label}
+              >
+                {src.label}
+              </a>
+            ) : (
+              <span key={i} style={s.sourceTag}>
+                {src.label}
+              </span>
+            ),
+          )}
+        </div>
+      )}
       <div style={s.formatPreview}>
         <div style={s.formatLabel}>SNS</div>
         <div style={s.formatText}>{sg.formats.sns}</div>
@@ -333,6 +361,32 @@ const s = {
     fontSize: 12,
     color: "var(--text-muted)",
     lineHeight: 1.5,
+  },
+  sourcesRow: {
+    display: "flex",
+    gap: 6,
+    flexWrap: "wrap" as const,
+  },
+  sourceLink: {
+    fontSize: 11,
+    color: "var(--accent)",
+    textDecoration: "none",
+    padding: "2px 8px",
+    borderRadius: 4,
+    background: "var(--accent-light)",
+    whiteSpace: "nowrap" as const,
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    maxWidth: 200,
+    display: "inline-block",
+  },
+  sourceTag: {
+    fontSize: 11,
+    color: "var(--text-muted)",
+    padding: "2px 8px",
+    borderRadius: 4,
+    background: "var(--bg-input)",
+    whiteSpace: "nowrap" as const,
   },
   formatPreview: {
     padding: "8px 10px",

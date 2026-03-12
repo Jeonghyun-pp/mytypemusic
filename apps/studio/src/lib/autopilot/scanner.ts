@@ -2,7 +2,7 @@ import { prisma } from "@/lib/db";
 import { callGptJson } from "@/lib/llm";
 import { createLogger } from "@/lib/logger";
 import { notifySlack } from "@/lib/notify";
-import { fetchTrends, formatTrendsForPrompt } from "@/lib/trends";
+import { fetchTrends, formatEnrichedTrendsForPrompt, enrichTrends } from "@/lib/trends";
 import { z } from "zod";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -11,6 +11,7 @@ type JsonInput = any;
 interface ProposalDraft {
   topic: string;
   source: string;
+  sourceUrls: string[];
   reasoning: string;
   text: string;
   hashtags: string[];
@@ -26,7 +27,7 @@ async function buildArtistAlbumContext(): Promise<string> {
     prisma.musicArtist.findMany({
       orderBy: { updatedAt: "desc" },
       take: 10,
-      select: { name: true, nameKo: true, genres: true },
+      select: { name: true, nameKo: true, genres: true, activeFrom: true },
     }),
     prisma.musicAlbum.findMany({
       orderBy: { createdAt: "desc" },
@@ -46,7 +47,8 @@ async function buildArtistAlbumContext(): Promise<string> {
     for (const a of artists) {
       const name = a.nameKo || a.name;
       const genres = a.genres.length > 0 ? ` (${a.genres.slice(0, 3).join(", ")})` : "";
-      lines.push(`- ${name}${genres}`);
+      const since = a.activeFrom ? ` [활동시작: ${a.activeFrom}]` : "";
+      lines.push(`- ${name}${genres}${since}`);
     }
   }
 
@@ -135,6 +137,7 @@ ${opts.personaContext}
 2. **근거 필수**: 위 데이터 중 어떤 것을 근거로 이 주제를 선택했는지 "source" 필드에 명시
 3. **중복 금지**: "최근 7일 이미 다룬 주제"와 겹치거나 유사한 주제 금지
 4. **포괄적 표현 금지**: 아래 BAD 예시와 같은 막연한 주제 절대 금지
+5. **사실 확인**: 아티스트를 "신인", "떠오르는", "새로운" 등으로 표현할 때 반드시 활동시작 연도를 확인할 것. 활동시작이 2년 이상 된 아티스트는 신인이 아님
 
 ## BAD — 이런 제안은 하지 마세요
 - "인디 음악의 숨은 명곡 발굴하기" → 어떤 곡인지 특정 안 됨
@@ -152,6 +155,7 @@ Return JSON:
 {
   "topic": "구체적 주제 제목 (Korean)",
   "source": "이 주제를 선택한 근거 데이터 출처 (예: 'Spotify 신보 데이터 + Google 트렌드 검색량 상승')",
+  "sourceUrls": ["근거가 된 트렌드 항목의 원문 URL들 (위 데이터에서 URL이 있는 항목만)"],
   "reasoning": "왜 지금 이 주제인지 1-2문장 (Korean)",
   "text": "${opts.platform}에 맞는 완성된 게시물 본문 (Korean)",
   "hashtags": ["해시태그1", "해시태그2", "해시태그3"]
@@ -202,7 +206,13 @@ export async function generateProposals(configId: string): Promise<number> {
     buildPersonaContext(config.personaId),
   ]);
 
-  const trendContext = formatTrendsForPrompt(globalTrends, nicheTrends);
+  // Enrich trends with real-time context (KG, web search, LLM summary)
+  const allRaw = [...globalTrends, ...nicheTrends];
+  const enriched = await enrichTrends(allRaw);
+  const enrichedGlobal = enriched.filter((t) => !nicheTrends.some((n) => n.title === t.title));
+  const enrichedNiche = enriched.filter((t) => nicheTrends.some((n) => n.title === t.title));
+
+  const trendContext = formatEnrichedTrendsForPrompt(enrichedGlobal, enrichedNiche);
 
   // Generate proposals for each platform
   const proposals: ProposalDraft[] = [];
@@ -224,6 +234,7 @@ export async function generateProposals(configId: string): Promise<number> {
         schema: z.object({
           topic: z.string().default("Untitled"),
           source: z.string().default(""),
+          sourceUrls: z.array(z.string()).default([]),
           reasoning: z.string().default(""),
           text: z.string().default(""),
           hashtags: z.array(z.string()).default([]),
@@ -232,6 +243,7 @@ export async function generateProposals(configId: string): Promise<number> {
       proposals.push({
         topic: parsed.topic ?? "Untitled",
         source: parsed.source ?? "",
+        sourceUrls: parsed.sourceUrls ?? [],
         reasoning: parsed.reasoning ?? "",
         text: parsed.text ?? "",
         hashtags: parsed.hashtags ?? [],
@@ -253,7 +265,7 @@ export async function generateProposals(configId: string): Promise<number> {
         autopilotConfigId: configId,
         topic: p.topic,
         reasoning: `[${p.source}] ${p.reasoning}`,
-        content: { text: p.text, hashtags: p.hashtags } as JsonInput,
+        content: { text: p.text, hashtags: p.hashtags, sourceUrls: p.sourceUrls } as JsonInput,
         platform: p.platform,
         personaId: config.personaId ?? null,
         status: config.approvalMode === "auto" ? "approved" : "pending",

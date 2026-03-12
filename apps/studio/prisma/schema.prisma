@@ -796,3 +796,52 @@ model ImageGenHistory {
   @@index([createdAt])
   @@map("image_gen_history")
 }
+
+// ---------------------------------------------------------------------------
+// Instagram Reference Account Monitoring
+// ---------------------------------------------------------------------------
+
+model ReferenceAccount {
+  id              String    @id @default(uuid())
+  platform        String    @default("instagram") // future: tiktok, youtube
+  username        String
+  platformUserId  String?
+  displayName     String    @default("")
+  profileImageUrl String    @default("")
+  followersCount  Int       @default(0)
+  category        String    @default("artist") // "artist" | "label" | "venue" | "media" | "festival"
+  tags            String[]  @default([])
+  isActive        Boolean   @default(true)
+  lastSyncedAt    DateTime?
+  syncError       String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  feeds           ReferenceFeed[]
+
+  @@unique([platform, username])
+  @@index([platform, isActive])
+  @@map("reference_accounts")
+}
+
+model ReferenceFeed {
+  id                 String           @id @default(uuid())
+  referenceAccountId String
+  account            ReferenceAccount @relation(fields: [referenceAccountId], references: [id], onDelete: Cascade)
+  platformPostId     String           @unique
+  postType           String           @default("image") // "image" | "video" | "carousel_album" | "reel"
+  permalink          String           @default("")
+  caption            String           @default("") @db.Text
+  thumbnailUrl       String           @default("")
+  likeCount          Int              @default(0)
+  commentsCount      Int              @default(0)
+  timestamp          DateTime
+  hashtags           String[]         @default([])
+  mentionedUsers     String[]         @default([])
+  enrichedContext    String?          @db.Text
+  createdAt          DateTime         @default(now())
+
+  @@index([referenceAccountId, timestamp])
+  @@index([timestamp])
+  @@map("reference_feeds")
+}

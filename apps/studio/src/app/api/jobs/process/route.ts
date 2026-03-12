@@ -13,6 +13,7 @@ import { personaLearnHandler } from "@/lib/jobs/handlers/personaLearn";
 import { keywordCommentPostHandler } from "@/lib/jobs/handlers/keywordCommentPost";
 import { dailyResetHandler } from "@/lib/jobs/handlers/dailyReset";
 import { onboardAnalyzeHandler } from "@/lib/jobs/handlers/onboardAnalyze";
+import { referenceFeedSyncHandler } from "@/lib/jobs/handlers/referenceFeedSync";
 
 // Register all job handlers
 registerHandler(publishHandler);
@@ -27,6 +28,7 @@ registerHandler(dailyResetHandler);
 registerHandler(analyticsCollectHandler);
 registerHandler(personaLearnHandler);
 registerHandler(onboardAnalyzeHandler);
+registerHandler(referenceFeedSyncHandler);
 
 /**
  * POST /api/jobs/process — Process pending jobs.

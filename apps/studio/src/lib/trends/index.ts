@@ -5,10 +5,13 @@ import { youtubeProvider } from "./youtube";
 import { googleTrendsProvider } from "./google";
 import { spotifyProvider } from "./spotify";
 import { redditProvider } from "./reddit";
+import { instagramRefProvider } from "./instagram-ref";
 import { logger } from "@/lib/logger";
 import { cacheGetJSON, cacheSetJSON } from "@/lib/redis";
 
 export type { TrendItem } from "./types";
+export type { EnrichedTrendItem } from "./enrich";
+export { enrichTrends } from "./enrich";
 
 // ---------------------------------------------------------------------------
 // Cache — Redis (shared across instances) with in-memory L1 for same-process
@@ -38,6 +41,7 @@ function trendCacheKey(kh: string): string {
 // ---------------------------------------------------------------------------
 
 const globalProviders = [
+  instagramRefProvider,
   googleTrendsProvider,
   youtubeProvider,
   spotifyProvider,
@@ -132,7 +136,7 @@ export function formatTrendsForPrompt(
     parts.push(
       ...generalItems.slice(0, maxPerSection).map(
         (t, i) =>
-          `${i + 1}. [${t.source}] ${t.title}${t.description ? ` — ${t.description}` : ""}`,
+          `${i + 1}. [${t.source}] ${t.title}${t.description ? ` — ${t.description}` : ""}${t.url ? ` (${t.url})` : ""}`,
       ),
     );
   }
@@ -142,7 +146,7 @@ export function formatTrendsForPrompt(
     parts.push(
       ...keywordItems.slice(0, maxPerSection).map(
         (t, i) =>
-          `${i + 1}. [${t.source}] "${t.keyword}" → ${t.title}${t.description ? ` — ${t.description}` : ""}`,
+          `${i + 1}. [${t.source}] "${t.keyword}" → ${t.title}${t.description ? ` — ${t.description}` : ""}${t.url ? ` (${t.url})` : ""}`,
       ),
     );
   }
@@ -152,8 +156,71 @@ export function formatTrendsForPrompt(
     parts.push(
       ...niche.slice(0, maxPerSection).map(
         (t, i) =>
-          `${i + 1}. [${t.source}] ${t.title}${t.description ? ` — ${t.description}` : ""}`,
+          `${i + 1}. [${t.source}] ${t.title}${t.description ? ` — ${t.description}` : ""}${t.url ? ` (${t.url})` : ""}`,
       ),
+    );
+  }
+
+  return parts.length > 0 ? parts.join("\n") : "(트렌드 데이터 없음)";
+}
+
+/**
+ * Format enriched trends with inline context summaries.
+ * Instagram-ref items get their own top section.
+ */
+export function formatEnrichedTrendsForPrompt(
+  global: import("./enrich").EnrichedTrendItem[],
+  niche: import("./enrich").EnrichedTrendItem[],
+  maxPerSection = 10,
+): string {
+  const parts: string[] = [];
+
+  // Separate Instagram-ref items from other global items
+  const igItems = global.filter((t) => t.source === "instagram-ref");
+  const otherGeneral = global.filter((t) => t.source !== "instagram-ref" && !t.keyword);
+  const keywordItems = global.filter((t) => t.keyword);
+
+  function formatItem(t: import("./enrich").EnrichedTrendItem, i: number): string {
+    const lines = [
+      `${i + 1}. [${t.source}] ${t.title}${t.description ? ` — ${t.description.split("\n")[0]?.slice(0, 100)}` : ""}`,
+    ];
+    if (t.context) lines.push(`   맥락: ${t.context}`);
+    if (t.url) lines.push(`   출처: ${t.url}`);
+    return lines.join("\n");
+  }
+
+  if (igItems.length > 0) {
+    parts.push("## 인스타그램 레퍼런스 피드 (아티스트/레이블 직접 게시)");
+    parts.push(
+      ...igItems.slice(0, maxPerSection).map(formatItem),
+    );
+  }
+
+  if (otherGeneral.length > 0) {
+    parts.push("\n## 오늘의 트렌드 (실시간 데이터)");
+    parts.push(
+      ...otherGeneral.slice(0, maxPerSection).map(formatItem),
+    );
+  }
+
+  if (keywordItems.length > 0) {
+    parts.push("\n## 키워드 관련 트렌드 (글로벌 소스)");
+    parts.push(
+      ...keywordItems.slice(0, maxPerSection).map((t, i) => {
+        const lines = [
+          `${i + 1}. [${t.source}] "${t.keyword}" → ${t.title}${t.description ? ` — ${t.description.split("\n")[0]?.slice(0, 100)}` : ""}`,
+        ];
+        if (t.context) lines.push(`   맥락: ${t.context}`);
+        if (t.url) lines.push(`   출처: ${t.url}`);
+        return lines.join("\n");
+      }),
+    );
+  }
+
+  if (niche.length > 0) {
+    parts.push("\n## 내 분야 최신 동향 (뉴스/블로그)");
+    parts.push(
+      ...niche.slice(0, maxPerSection).map(formatItem),
     );
   }
 
