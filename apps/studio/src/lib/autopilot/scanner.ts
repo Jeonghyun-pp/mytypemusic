@@ -206,11 +206,19 @@ export async function generateProposals(configId: string): Promise<number> {
     buildPersonaContext(config.personaId),
   ]);
 
-  // Enrich trends with real-time context (KG, web search, LLM summary)
-  const allRaw = [...globalTrends, ...nicheTrends];
-  const enriched = await enrichTrends(allRaw);
-  const enrichedGlobal = enriched.filter((t) => !nicheTrends.some((n) => n.title === t.title));
-  const enrichedNiche = enriched.filter((t) => nicheTrends.some((n) => n.title === t.title));
+  // Enrich trends with real-time context (non-fatal — fall back to raw trends)
+  let enrichedGlobal: import("@/lib/trends").EnrichedTrendItem[];
+  let enrichedNiche: import("@/lib/trends").EnrichedTrendItem[];
+  try {
+    const allRaw = [...globalTrends, ...nicheTrends];
+    const enriched = await enrichTrends(allRaw);
+    enrichedGlobal = enriched.filter((t) => !nicheTrends.some((n) => n.title === t.title));
+    enrichedNiche = enriched.filter((t) => nicheTrends.some((n) => n.title === t.title));
+  } catch (enrichErr) {
+    createLogger({}).warn(enrichErr, "enrichTrends failed, using raw trends");
+    enrichedGlobal = globalTrends;
+    enrichedNiche = nicheTrends;
+  }
 
   const trendContext = formatEnrichedTrendsForPrompt(enrichedGlobal, enrichedNiche);
 

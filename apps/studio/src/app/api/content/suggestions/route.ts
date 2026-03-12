@@ -101,11 +101,19 @@ export async function GET() {
       allNicheKws.length > 0 ? allNicheKws : undefined,
     );
 
-    // Enrich trends with real-time context
-    const allRaw = [...globalTrends, ...nicheTrends];
-    const enriched = await enrichTrends(allRaw);
-    const enrichedGlobal = enriched.filter((t) => !nicheTrends.some((n) => n.title === t.title));
-    const enrichedNiche = enriched.filter((t) => nicheTrends.some((n) => n.title === t.title));
+    // Enrich trends with real-time context (non-fatal — fall back to raw trends)
+    let enrichedGlobal: import("@/lib/trends").EnrichedTrendItem[];
+    let enrichedNiche: import("@/lib/trends").EnrichedTrendItem[];
+    try {
+      const allRaw = [...globalTrends, ...nicheTrends];
+      const enriched = await enrichTrends(allRaw);
+      enrichedGlobal = enriched.filter((t) => !nicheTrends.some((n) => n.title === t.title));
+      enrichedNiche = enriched.filter((t) => nicheTrends.some((n) => n.title === t.title));
+    } catch (enrichErr) {
+      console.error("[suggestions] enrichTrends failed, using raw trends:", enrichErr);
+      enrichedGlobal = globalTrends;
+      enrichedNiche = nicheTrends;
+    }
 
     // Recent publications for personalization
     const recentPubs = await prisma.publication.findMany({
