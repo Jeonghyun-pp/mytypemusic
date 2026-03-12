@@ -47,6 +47,19 @@ function coerceStr(v: unknown): string {
   return "";
 }
 
+/** Safely parse LLM output into SuggestionItem[], returning [] on any failure */
+function safeParseSuggestions(raw: unknown): SuggestionItem[] {
+  if (!raw) return [];
+  try {
+    const normalized = normalizeSuggestions(raw);
+    const result = SuggestionSchema.parse(normalized);
+    return result.suggestions;
+  } catch (e) {
+    console.error("[suggestions] parse failed:", e);
+    return [];
+  }
+}
+
 // In-memory cache (30 min) — separate for general and niche
 interface CacheEntry {
   general: SuggestionItem[];
@@ -205,29 +218,27 @@ Return JSON:
       if (generalRes.status === "rejected") console.error("[suggestions] general LLM failed:", generalRes.reason);
       if (nicheRes.status === "rejected") console.error("[suggestions] niche LLM failed:", nicheRes.reason);
 
-      const generalParsed = generalRes.status === "fulfilled"
-        ? SuggestionSchema.parse(normalizeSuggestions(generalRes.value))
-        : { suggestions: [] as SuggestionItem[] };
-      const nicheParsed = nicheRes.status === "fulfilled"
-        ? SuggestionSchema.parse(normalizeSuggestions(nicheRes.value))
-        : { suggestions: [] as SuggestionItem[] };
-
       cache = {
-        general: generalParsed.suggestions,
-        niche: nicheParsed.suggestions,
+        general: safeParseSuggestions(generalRes.status === "fulfilled" ? generalRes.value : null),
+        niche: safeParseSuggestions(nicheRes.status === "fulfilled" ? nicheRes.value : null),
         nicheKeywords: allNicheKws,
         at: Date.now(),
       };
     } else {
-      const raw = await callGptJson(generalPrompt, {
-        caller: "suggestions",
-        maxTokens: 1500,
-        timeoutMs: 25_000,
-      });
-      const generalResult = SuggestionSchema.parse(normalizeSuggestions(raw));
+      let generalItems: SuggestionItem[] = [];
+      try {
+        const raw = await callGptJson(generalPrompt, {
+          caller: "suggestions",
+          maxTokens: 1500,
+          timeoutMs: 25_000,
+        });
+        generalItems = safeParseSuggestions(raw);
+      } catch (llmErr) {
+        console.error("[suggestions] general LLM failed:", llmErr);
+      }
 
       cache = {
-        general: generalResult.suggestions,
+        general: generalItems,
         niche: [],
         nicheKeywords: [],
         at: Date.now(),
@@ -240,7 +251,8 @@ Return JSON:
       nicheKeywords: cache.nicheKeywords,
     });
   } catch (e) {
-    console.error("[suggestions] Error:", e);
-    return serverError(String(e));
+    console.error("[suggestions] Fatal error:", e);
+    // Return empty results instead of 500 so the UI still renders
+    return json({ general: [], niche: [], nicheKeywords: [], error: String(e) });
   }
 }
