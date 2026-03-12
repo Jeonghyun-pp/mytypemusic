@@ -10,11 +10,159 @@ type JsonInput = any;
 
 interface ProposalDraft {
   topic: string;
+  source: string;
   reasoning: string;
   text: string;
   hashtags: string[];
   platform: string;
 }
+
+// ---------------------------------------------------------------------------
+// Context builders — gather concrete "materials" for the prompt
+// ---------------------------------------------------------------------------
+
+async function buildArtistAlbumContext(): Promise<string> {
+  const [artists, albums] = await Promise.all([
+    prisma.musicArtist.findMany({
+      orderBy: { updatedAt: "desc" },
+      take: 10,
+      select: { name: true, nameKo: true, genres: true },
+    }),
+    prisma.musicAlbum.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 10,
+      include: {
+        artist: { select: { name: true, nameKo: true } },
+      },
+    }),
+  ]);
+
+  if (artists.length === 0 && albums.length === 0) return "";
+
+  const lines: string[] = ["\n## 참고할 아티스트/앨범 데이터"];
+
+  if (artists.length > 0) {
+    lines.push("아티스트:");
+    for (const a of artists) {
+      const name = a.nameKo || a.name;
+      const genres = a.genres.length > 0 ? ` (${a.genres.slice(0, 3).join(", ")})` : "";
+      lines.push(`- ${name}${genres}`);
+    }
+  }
+
+  if (albums.length > 0) {
+    lines.push("최근 앨범:");
+    for (const al of albums) {
+      const artistName = al.artist.nameKo || al.artist.name;
+      const release = al.releaseDate ? ` [${al.releaseDate}]` : "";
+      lines.push(`- ${artistName} — '${al.titleKo || al.title}'${release} (${al.albumType})`);
+    }
+  }
+
+  return lines.join("\n");
+}
+
+async function buildRecentProposalContext(configId: string): Promise<string> {
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const recent = await prisma.autopilotProposal.findMany({
+    where: {
+      autopilotConfigId: configId,
+      createdAt: { gte: sevenDaysAgo },
+    },
+    orderBy: { createdAt: "desc" },
+    take: 15,
+    select: { topic: true },
+  });
+
+  if (recent.length === 0) return "";
+
+  const lines = ["\n## 최근 7일 이미 다룬 주제 (중복 금지)"];
+  for (const r of recent) {
+    lines.push(`- ${r.topic}`);
+  }
+  return lines.join("\n");
+}
+
+async function buildPersonaContext(personaId: string | null): Promise<string> {
+  if (!personaId) return "";
+  const persona = await prisma.writingPersona.findUnique({
+    where: { id: personaId },
+  });
+  if (!persona) return "";
+
+  return `\n## 작성 페르소나
+- 이름: ${persona.name}
+- 톤: ${JSON.stringify(persona.tone)}
+- 문체: ${persona.styleFingerprint}
+- 어휘: ${JSON.stringify(persona.vocabulary)}`;
+}
+
+// ---------------------------------------------------------------------------
+// Prompt builder
+// ---------------------------------------------------------------------------
+
+function buildPrompt(opts: {
+  platform: string;
+  keywords: string[];
+  trendContext: string;
+  artistAlbumContext: string;
+  recentProposalContext: string;
+  personaContext: string;
+}): string {
+  const keywordLine =
+    opts.keywords.length > 0
+      ? `사용자 지정 키워드: ${opts.keywords.join(", ")}`
+      : "";
+
+  return `당신은 한국 인디/밴드 음악 웹매거진의 편집장입니다.
+독자층: 20-30대, 인디 공연을 다니고, 밴드 음악에 깊은 관심이 있는 사람들.
+플랫폼: ${opts.platform}
+
+${keywordLine}
+
+${opts.trendContext}
+${opts.artistAlbumContext}
+${opts.recentProposalContext}
+${opts.personaContext}
+
+---
+
+위 데이터를 교차 분석하여, 지금 가장 시의적절한 콘텐츠 1개를 제안하세요.
+
+## 반드시 지킬 규칙
+
+1. **구체성**: 반드시 특정 아티스트명, 곡명, 앨범명, 공연 날짜, 또는 이벤트명을 포함할 것
+2. **근거 필수**: 위 데이터 중 어떤 것을 근거로 이 주제를 선택했는지 "source" 필드에 명시
+3. **중복 금지**: "최근 7일 이미 다룬 주제"와 겹치거나 유사한 주제 금지
+4. **포괄적 표현 금지**: 아래 BAD 예시와 같은 막연한 주제 절대 금지
+
+## BAD — 이런 제안은 하지 마세요
+- "인디 음악의 숨은 명곡 발굴하기" → 어떤 곡인지 특정 안 됨
+- "K팝 아티스트의 비하인드 스토리 공개!" → 누구인지 없음
+- "2026년 봄, 기대되는 신보 소식!" → 어떤 아티스트의 어떤 앨범인지 없음
+- "기타 장비 분석: 최고의 사운드를 찾아서" → 누구의 어떤 장비인지 없음
+
+## GOOD — 이 수준으로 구체적이어야 합니다
+- "실리카겔 'NO PAIN' 기타 톤 분석 — Fender Jazzmaster 세팅 추정"
+- "잔나비 '소우주' 선공개곡 가사 해석 — 전작과 달라진 3가지"
+- "뉴진스 3월 컴백 트레일러 분석 — 'How Sweet' 뮤비 레퍼런스 추적"
+- "서울숲재즈페스티벌 2026 라인업 발표 — 주목할 아티스트 3팀"
+
+Return JSON:
+{
+  "topic": "구체적 주제 제목 (Korean)",
+  "source": "이 주제를 선택한 근거 데이터 출처 (예: 'Spotify 신보 데이터 + Google 트렌드 검색량 상승')",
+  "reasoning": "왜 지금 이 주제인지 1-2문장 (Korean)",
+  "text": "${opts.platform}에 맞는 완성된 게시물 본문 (Korean)",
+  "hashtags": ["해시태그1", "해시태그2", "해시태그3"]
+}
+
+Respond ONLY with the JSON object.`;
+}
+
+// ---------------------------------------------------------------------------
+// Main entry point
+// ---------------------------------------------------------------------------
 
 /**
  * Scan trends and generate content proposals for an autopilot config.
@@ -25,17 +173,6 @@ export async function generateProposals(configId: string): Promise<number> {
     where: { id: configId },
   });
   if (!config || !config.isActive) return 0;
-
-  // Get persona if set
-  let personaContext = "";
-  if (config.personaId) {
-    const persona = await prisma.writingPersona.findUnique({
-      where: { id: config.personaId },
-    });
-    if (persona) {
-      personaContext = `\n\nWriting Persona:\n- Name: ${persona.name}\n- Tone: ${JSON.stringify(persona.tone)}\n- Style: ${persona.styleFingerprint}\n- Vocabulary: ${JSON.stringify(persona.vocabulary)}`;
-    }
-  }
 
   // Count today's pending/approved/published proposals
   const todayStart = new Date();
@@ -50,10 +187,21 @@ export async function generateProposals(configId: string): Promise<number> {
   const remaining = config.postsPerDay - todayCount;
   if (remaining <= 0) return 0;
 
-  // Fetch real trend data
-  const { global: globalTrends, niche: nicheTrends } = await fetchTrends(
-    config.topicKeywords.length > 0 ? config.topicKeywords : undefined,
-  );
+  // Gather all context in parallel
+  const keywords = config.topicKeywords;
+
+  const [
+    { global: globalTrends, niche: nicheTrends },
+    artistAlbumContext,
+    recentProposalContext,
+    personaContext,
+  ] = await Promise.all([
+    fetchTrends(keywords.length > 0 ? keywords : undefined),
+    buildArtistAlbumContext(),
+    buildRecentProposalContext(configId),
+    buildPersonaContext(config.personaId),
+  ]);
+
   const trendContext = formatTrendsForPrompt(globalTrends, nicheTrends);
 
   // Generate proposals for each platform
@@ -61,29 +209,21 @@ export async function generateProposals(configId: string): Promise<number> {
   for (const platform of config.platforms) {
     if (proposals.length >= remaining) break;
 
-    const prompt = `You are a social media content strategist. Generate a content proposal for ${platform}.
-
-Topic keywords: ${config.topicKeywords.join(", ") || "general trends"}
-
-${trendContext}
-${personaContext}
-
-위 실시간 트렌드 데이터와 주제 키워드를 교차 분석하여, 지금 가장 시의적절한 콘텐츠를 제안하세요.
-트렌드와 키워드가 겹치는 주제를 우선 선택하세요.
-
-Return a JSON object with:
-- topic: brief topic title (Korean)
-- reasoning: why this topic will perform well NOW, referencing specific trend data (Korean, 1-2 sentences)
-- text: the actual post content ready to publish (Korean, appropriate length for ${platform})
-- hashtags: array of 3-5 relevant hashtags (without # prefix)
-
-Respond ONLY with the JSON object.`;
+    const prompt = buildPrompt({
+      platform,
+      keywords,
+      trendContext,
+      artistAlbumContext,
+      recentProposalContext,
+      personaContext,
+    });
 
     try {
       const parsed = await callGptJson(prompt, {
         caller: "autopilot",
         schema: z.object({
           topic: z.string().default("Untitled"),
+          source: z.string().default(""),
           reasoning: z.string().default(""),
           text: z.string().default(""),
           hashtags: z.array(z.string()).default([]),
@@ -91,6 +231,7 @@ Respond ONLY with the JSON object.`;
       });
       proposals.push({
         topic: parsed.topic ?? "Untitled",
+        source: parsed.source ?? "",
         reasoning: parsed.reasoning ?? "",
         text: parsed.text ?? "",
         hashtags: parsed.hashtags ?? [],
@@ -111,7 +252,7 @@ Respond ONLY with the JSON object.`;
       data: {
         autopilotConfigId: configId,
         topic: p.topic,
-        reasoning: p.reasoning,
+        reasoning: `[${p.source}] ${p.reasoning}`,
         content: { text: p.text, hashtags: p.hashtags } as JsonInput,
         platform: p.platform,
         personaId: config.personaId ?? null,
