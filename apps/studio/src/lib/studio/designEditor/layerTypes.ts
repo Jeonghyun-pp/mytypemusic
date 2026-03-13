@@ -88,6 +88,14 @@ export const ImageLayerSchema = LayerBaseSchema.extend({
   src: z.string(),
   objectFit: z.enum(["cover", "contain", "fill"]).default("cover"),
   borderRadius: z.number().min(0).default(0),
+  /** Crop: offset of image within frame (px, relative to natural size) */
+  cropX: z.number().default(0),
+  cropY: z.number().default(0),
+  /** Crop: zoom level (1 = fit, >1 = zoomed in) */
+  cropZoom: z.number().min(0.1).max(10).default(1),
+  /** Flip transforms */
+  flipH: z.boolean().default(false),
+  flipV: z.boolean().default(false),
 });
 export type ImageLayer = z.infer<typeof ImageLayerSchema>;
 

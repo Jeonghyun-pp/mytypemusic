@@ -265,6 +265,7 @@ export default function DesignEditor({ projectId, initialSpec, onAutoSave, initi
   const [spec, setSpec] = useState<DesignSpec>(() => initialSpec ?? createDefaultDesignSpec());
   const [downloading, setDownloading] = useState(false);
   const [pdfExporting, setPdfExporting] = useState(false);
+  const [exportScale, setExportScale] = useState(1);
   const [category, setCategory] = useState("");
 
   // Pre-fill first slide with topic + carousel concept from AI suggestion
@@ -614,6 +615,7 @@ export default function DesignEditor({ projectId, initialSpec, onAutoSave, initi
 
   // ── Layer management ──────────────────────────────────
   const [selectedLayerId, setSelectedLayerId] = useState<string | null>(null);
+  const [selectedLayerIds, setSelectedLayerIds] = useState<string[]>([]);
   const [recentColors, setRecentColors] = useState<string[]>([]);
   const handleColorUsed = useCallback((color: string) => {
     setRecentColors((prev) => {
@@ -656,6 +658,7 @@ export default function DesignEditor({ projectId, initialSpec, onAutoSave, initi
             rotation: 0, scale: 1, opacity: 1, blendMode: "normal",
             zIndex, visible: true, locked: false,
             src: "", objectFit: "cover", borderRadius: 0,
+            cropX: 0, cropY: 0, cropZoom: 1, flipH: false, flipV: false,
           };
           break;
         case "shape":
@@ -732,6 +735,94 @@ export default function DesignEditor({ projectId, initialSpec, onAutoSave, initi
     });
   }, [updateSpec]);
 
+  const handleDeleteLayers = useCallback((ids: string[]) => {
+    updateSpec((prev) => {
+      const i = prev.currentSlideIndex;
+      const slides = [...prev.slides];
+      const slide = slides[i]!;
+      const idSet = new Set(ids);
+      const layers = (slide.layers ?? []).filter((l) => !idSet.has(l.id));
+      slides[i] = { ...slide, layers };
+      return { ...prev, slides };
+    });
+    setSelectedLayerId(null);
+    setSelectedLayerIds([]);
+  }, [updateSpec]);
+
+  const handleDuplicateLayers = useCallback((ids: string[]) => {
+    updateSpec((prev) => {
+      const i = prev.currentSlideIndex;
+      const slides = [...prev.slides];
+      const slide = slides[i]!;
+      const existingLayers = slide.layers ?? [];
+      const toDuplicate = existingLayers.filter((l) => ids.includes(l.id));
+      const newLayers: Layer[] = [];
+      const newIds: string[] = [];
+      for (const l of toDuplicate) {
+        layerCounter.current += 1;
+        const newId = `layer-${String(Date.now())}-${String(layerCounter.current)}`;
+        newIds.push(newId);
+        newLayers.push({
+          ...l,
+          id: newId,
+          name: `${l.name} 복사`,
+          x: l.x + 20,
+          y: l.y + 20,
+          zIndex: existingLayers.length + newLayers.length,
+        } as Layer);
+      }
+      slides[i] = { ...slide, layers: [...existingLayers, ...newLayers] };
+      setSelectedLayerIds(newIds);
+      if (newIds.length === 1) setSelectedLayerId(newIds[0]!);
+      return { ...prev, slides };
+    });
+  }, [updateSpec]);
+
+  const handleInsertImage = useCallback((url: string, attribution: string) => {
+    updateSpec((prev) => {
+      const i = prev.currentSlideIndex;
+      const slides = [...prev.slides];
+      const slide = slides[i]!;
+      const existingLayers = slide.layers ?? [];
+      layerCounter.current += 1;
+      const id = `layer-${String(Date.now())}-${String(layerCounter.current)}`;
+      const cw = prev.canvasSize?.width ?? 1080;
+      const ch = prev.canvasSize?.height ?? 1350;
+      const newLayer: Layer = {
+        id,
+        kind: "image",
+        name: attribution.slice(0, 30),
+        x: 0,
+        y: 0,
+        width: cw,
+        height: ch,
+        rotation: 0,
+        scale: 1,
+        opacity: 1,
+        blendMode: "normal",
+        zIndex: existingLayers.length,
+        visible: true,
+        locked: false,
+        src: url,
+        objectFit: "cover",
+        borderRadius: 0,
+        cropX: 0, cropY: 0, cropZoom: 1, flipH: false, flipV: false,
+      };
+      slides[i] = { ...slide, layers: [...existingLayers, newLayer] };
+      setSelectedLayerId(id);
+      return { ...prev, slides };
+    });
+  }, [updateSpec]);
+
+  const handleSetBackground = useCallback((url: string) => {
+    updateSpec((prev) => {
+      const i = prev.currentSlideIndex;
+      const slides = [...prev.slides];
+      slides[i] = { ...slides[i]!, heroImageDataUri: url };
+      return { ...prev, slides };
+    });
+  }, [updateSpec]);
+
   const handleBulkReorderLayers = useCallback((orderedIds: string[]) => {
     updateSpec((prev) => {
       const i = prev.currentSlideIndex;
@@ -756,9 +847,12 @@ export default function DesignEditor({ projectId, initialSpec, onAutoSave, initi
     try {
       for (let i = 0; i < spec.slides.length; i++) {
         const slide = spec.slides[i]!;
-        const fetchBody = slide.customHtml
+        const baseBody = slide.customHtml
           ? { rawHtml: slide.customHtml, heroImageDataUri: slide.heroImageDataUri, fontMood: spec.fontMood, canvasSize: spec.canvasSize, heroImageFit: spec.heroImageFit }
-          : { slide, globalStyle: spec.globalStyle, fontMood: spec.fontMood, canvasSize: spec.canvasSize, heroImageFit: spec.heroImageFit };
+          : slide.layers && slide.layers.length > 0
+            ? { layers: slide.layers, background: spec.globalStyle?.bgGradient ?? "#FFFFFF", fontMood: spec.fontMood, canvasSize: spec.canvasSize }
+            : { slide, globalStyle: spec.globalStyle, fontMood: spec.fontMood, canvasSize: spec.canvasSize, heroImageFit: spec.heroImageFit };
+        const fetchBody = { ...baseBody, scale: exportScale };
         const res = await fetch("/api/design/render", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -788,7 +882,54 @@ export default function DesignEditor({ projectId, initialSpec, onAutoSave, initi
     } finally {
       setDownloading(false);
     }
+  }, [spec, exportScale]);
+
+  // ── AI Polish: render current slide for critique ──────
+  const handleRenderCurrentSlide = useCallback(async (): Promise<string | null> => {
+    const slide = spec.slides[spec.currentSlideIndex]!;
+    const baseBody = slide.customHtml
+      ? { rawHtml: slide.customHtml, heroImageDataUri: slide.heroImageDataUri, fontMood: spec.fontMood, canvasSize: spec.canvasSize, heroImageFit: spec.heroImageFit }
+      : slide.layers && slide.layers.length > 0
+        ? { layers: slide.layers, background: spec.globalStyle?.bgGradient ?? "#FFFFFF", fontMood: spec.fontMood, canvasSize: spec.canvasSize }
+        : { slide, globalStyle: spec.globalStyle, fontMood: spec.fontMood, canvasSize: spec.canvasSize, heroImageFit: spec.heroImageFit };
+    try {
+      const res = await fetch("/api/design/render", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(baseBody),
+      });
+      if (!res.ok) return null;
+      const data = (await res.json()) as { png: string };
+      return data.png;
+    } catch {
+      return null;
+    }
   }, [spec]);
+
+  const handleApplyRefinement = useCallback(async (instructions: string) => {
+    // Send refinement instructions to AI chat to interpret and generate actions
+    try {
+      const res = await fetch("/api/design/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messages: [
+            { role: "system", content: "Apply the following design critique refinement instructions to the current design. Generate concrete style/text actions." },
+            { role: "user", content: instructions },
+          ],
+          spec,
+        }),
+      });
+      if (!res.ok) return;
+      const data = (await res.json()) as { actions?: AiDesignAction[] };
+      if (data.actions && data.actions.length > 0) {
+        handleApplyActions(data.actions);
+      }
+    } catch {
+      // Fallback: log instructions for manual application
+      console.log("[AI Polish] Refinement instructions:", instructions);
+    }
+  }, [spec, handleApplyActions]);
 
   const handlePdfExport = useCallback(async () => {
     setPdfExporting(true);
@@ -908,13 +1049,23 @@ export default function DesignEditor({ projectId, initialSpec, onAutoSave, initi
             ↪
           </button>
           <RefDropdown />
+          <select
+            value={exportScale}
+            onChange={(e) => setExportScale(Number(e.target.value))}
+            style={s.categorySelect}
+            title="내보내기 해상도"
+          >
+            <option value={1}>1x</option>
+            <option value={2}>2x</option>
+            <option value={3}>3x</option>
+          </select>
           <button
             type="button"
             style={{ ...s.downloadBtn, opacity: downloading ? 0.5 : 1 }}
             onClick={() => void handleDownloadAll()}
             disabled={downloading}
           >
-            {downloading ? "다운로드 중..." : `PNG (${String(spec.slides.length)}장)`}
+            {downloading ? "다운로드 중..." : `PNG ${exportScale}x (${String(spec.slides.length)}장)`}
           </button>
           <button
             type="button"
@@ -970,6 +1121,16 @@ export default function DesignEditor({ projectId, initialSpec, onAutoSave, initi
           recentColors={recentColors}
           onColorUsed={handleColorUsed}
           onAddInfographicSlide={handleAddInfographicSlide}
+          onInsertImage={handleInsertImage}
+          onSetBackground={handleSetBackground}
+          onRenderSlide={handleRenderCurrentSlide}
+          onApplyRefinement={handleApplyRefinement}
+          polishContext={{
+            contentType: currentSlide.kind,
+            platform: "instagram",
+            mood: spec.fontMood,
+            keyMessage: currentSlide.title,
+          }}
         />
         {currentSlide.layers && currentSlide.layers.length > 0 ? (
           <LayerCanvas
@@ -980,6 +1141,10 @@ export default function DesignEditor({ projectId, initialSpec, onAutoSave, initi
             selectedLayerId={selectedLayerId}
             onSelectLayer={setSelectedLayerId}
             onUpdateLayer={handleUpdateLayer}
+            selectedLayerIds={selectedLayerIds}
+            onSelectLayers={setSelectedLayerIds}
+            onDeleteLayers={handleDeleteLayers}
+            onDuplicateLayers={handleDuplicateLayers}
           />
         ) : (
           <PreviewPanel

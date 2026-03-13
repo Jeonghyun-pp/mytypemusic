@@ -1,0 +1,163 @@
+{
+  "cover.hero.v1": {
+    "width": 1080,
+    "height": 1350,
+    "placeholders": ["title", "body", "footer", "hero-image", "accent-color"],
+    "kind": "cover",
+    "description": "Hero image cover with title overlay"
+  },
+  "cover.hero.v2": {
+    "width": 1080,
+    "height": 1350,
+    "placeholders": ["title", "body", "footer", "hero-image", "accent-color"],
+    "kind": "cover",
+    "description": "Left-aligned cover with wide scrim"
+  },
+  "cover.minimal.v1": {
+    "width": 1080,
+    "height": 1350,
+    "placeholders": ["title", "body", "footer", "accent-color"],
+    "kind": "cover",
+    "description": "Minimal cover without hero image"
+  },
+  "body.fact.v1": {
+    "width": 1080,
+    "height": 1350,
+    "placeholders": ["title", "body", "footer", "accent-color"],
+    "kind": "body",
+    "description": "Fact/statement card"
+  },
+  "body.fact.v2": {
+    "width": 1080,
+    "height": 1350,
+    "placeholders": ["title", "body", "footer", "accent-color"],
+    "kind": "body",
+    "description": "Fact card variant 2"
+  },
+  "body.fact.v3": {
+    "width": 1080,
+    "height": 1350,
+    "placeholders": ["title", "body", "footer", "accent-color"],
+    "kind": "body",
+    "description": "Fact card variant 3"
+  },
+  "body.fact.v4": {
+    "width": 1080,
+    "height": 1350,
+    "placeholders": ["title", "body", "footer", "accent-color"],
+    "kind": "body",
+    "description": "Fact card variant 4"
+  },
+  "body.quote.v1": {
+    "width": 1080,
+    "height": 1350,
+    "placeholders": ["title", "body", "footer", "accent-color"],
+    "kind": "body",
+    "description": "Quote block card"
+  },
+  "body.stat.v1": {
+    "width": 1080,
+    "height": 1350,
+    "placeholders": ["title", "body", "footer", "accent-color"],
+    "kind": "body",
+    "description": "Statistics card"
+  },
+  "body.list.v1": {
+    "width": 1080,
+    "height": 1350,
+    "placeholders": ["title", "body", "footer", "accent-color"],
+    "kind": "body",
+    "description": "List layout card"
+  },
+  "body.ranking.v1": {
+    "width": 1080,
+    "height": 1350,
+    "placeholders": ["title", "body", "footer", "accent-color"],
+    "kind": "body",
+    "description": "Ranked list card"
+  },
+  "body.highlight.v1": {
+    "width": 1080,
+    "height": 1350,
+    "placeholders": ["title", "body", "footer", "accent-color"],
+    "kind": "body",
+    "description": "Highlighted content card"
+  },
+  "end.outro.v1": {
+    "width": 1080,
+    "height": 1350,
+    "placeholders": ["title", "body", "footer", "accent-color"],
+    "kind": "outro",
+    "description": "Outro/closing slide"
+  },
+  "end.cta.v1": {
+    "width": 1080,
+    "height": 1350,
+    "placeholders": ["title", "body", "footer", "accent-color"],
+    "kind": "outro",
+    "description": "Call-to-action slide"
+  },
+  "sns.square.v1": {
+    "width": 1080,
+    "height": 1080,
+    "placeholders": ["title", "body", "footer", "hero-image", "accent-color"],
+    "kind": "sns",
+    "description": "Instagram feed (1:1)"
+  },
+  "sns.story.v1": {
+    "width": 1080,
+    "height": 1920,
+    "placeholders": ["title", "body", "hero-image", "accent-color"],
+    "kind": "sns",
+    "description": "Instagram Story (9:16)"
+  },
+  "sns.twitter.v1": {
+    "width": 1200,
+    "height": 675,
+    "placeholders": ["title", "body", "hero-image", "accent-color"],
+    "kind": "sns",
+    "description": "Twitter/X card (16:9)"
+  },
+  "sns.youtube.v1": {
+    "width": 1280,
+    "height": 720,
+    "placeholders": ["title", "body", "hero-image", "accent-color"],
+    "kind": "sns",
+    "description": "YouTube thumbnail (16:9)"
+  },
+  "sns.quote.v1": {
+    "width": 1080,
+    "height": 1080,
+    "placeholders": ["title", "body", "footer", "accent-color"],
+    "kind": "sns",
+    "description": "Social media quote card"
+  },
+  "infographic.bar.v1": {
+    "width": 1080,
+    "height": 1350,
+    "placeholders": ["title", "body", "footer", "accent-color"],
+    "kind": "infographic",
+    "description": "Bar chart infographic"
+  },
+  "infographic.donut.v1": {
+    "width": 1080,
+    "height": 1350,
+    "placeholders": ["title", "body", "footer", "accent-color"],
+    "kind": "infographic",
+    "description": "Donut/pie chart infographic"
+  },
+  "infographic.comparison.v1": {
+    "width": 1080,
+    "height": 1350,
+    "placeholders": ["title", "body", "footer", "accent-color"],
+    "kind": "infographic",
+    "description": "Comparison layout infographic"
+  },
+  "infographic.timeline.v1": {
+    "width": 1080,
+    "height": 1350,
+    "placeholders": ["title", "body", "footer", "accent-color"],
+    "kind": "infographic",
+    "description": "Timeline infographic"
+  }
+}

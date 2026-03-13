@@ -896,3 +896,33 @@ model ReferenceFeed {
   @@index([timestamp])
   @@map("reference_feeds")
 }
+
+model BrandKit {
+  id              String   @id @default(uuid())
+  userId          String
+  name            String   @default("Default Brand Kit")
+  isDefault       Boolean  @default(false)
+  // Colors
+  colorPrimary    String   @default("#6C5CE7")
+  colorAccent     String   @default("#10b981")
+  colorBgDark     String   @default("#0a0a0a")
+  colorBgLight    String   @default("#f8f9fa")
+  colorText       String   @default("#1a1a1a")
+  // Typography
+  headingFont     String   @default("Pretendard")
+  bodyFont        String   @default("Noto Sans KR")
+  // Layout
+  safeMargin      Int      @default(60)
+  borderRadius    Int      @default(16)
+  // Assets
+  logoUrl         String?
+  logomarkUrl     String?
+  // Custom JSON for extended settings
+  extendedJson    String?  @db.Text
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([userId])
+  @@map("brand_kits")
+}

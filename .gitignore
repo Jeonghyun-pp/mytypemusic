@@ -29,6 +29,7 @@ desktop.ini
 
 # Outputs (런 결과물)
 outputs/runs/
+output/designs/
 
 # Test outputs
 test-e2e-*/

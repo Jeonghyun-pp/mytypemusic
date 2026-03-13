@@ -10,11 +10,13 @@ import type { PipelineResult, PersonaContext, ContentType } from "./types";
 import { generateDesignBrief } from "../design/design-director";
 import { generateVisualDesign } from "../design/visual-designer";
 import { generateDataViz } from "../design/data-viz-agent";
+import { runRefinementLoop } from "../design/refinement-loop";
 import type {
   DesignEngineInput,
   DesignBrief,
   DesignFormat,
   DesignPlatform,
+  DesignQualityRecord,
   DataVizResult,
 } from "../design/types";
 import type { VisualDesignResult } from "../design/types";
@@ -48,6 +50,10 @@ export interface E2EInput {
   };
   platforms?: DesignPlatform[];
   preferGenerated?: boolean;
+  /** Enable critique-refine loop for higher quality designs (default: true) */
+  enableRefinement?: boolean;
+  /** Max refinement iterations per design output (default: 3) */
+  maxRefinementIterations?: number;
   skip?: {
     article?: boolean;
     design?: boolean;
@@ -67,6 +73,10 @@ export interface E2EDesignOutput {
     platform: DesignPlatform;
     slides: VisualDesignResult["slides"];
     designPath: "template" | "generated";
+    /** Quality record from refinement loop (present when refinement enabled) */
+    quality?: DesignQualityRecord;
+    /** Number of refinement iterations performed */
+    iterationCount?: number;
   }>;
   dataViz?: DataVizResult;
   errors: Array<{ format: DesignFormat; platform: DesignPlatform; error: string }>;
@@ -167,19 +177,49 @@ export async function runE2EPipeline(input: E2EInput): Promise<E2EResult> {
       const visualResults: E2EDesignOutput["visualResults"] = [];
       const errors: E2EDesignOutput["errors"] = [];
 
+      const useRefinement = input.enableRefinement !== false;
+
       for (const output of outputs) {
         try {
-          const result = await generateVisualDesign(
-            { brief, contentSlides, preferGenerated: input.preferGenerated },
-            output.format,
-            output.platform,
-          );
-          visualResults.push({
-            format: result.format,
-            platform: output.platform,
-            slides: result.slides,
-            designPath: result.designPath,
-          });
+          const designInput = {
+            brief,
+            contentSlides,
+            preferGenerated: input.preferGenerated,
+            sourcedImageUrls: input.sourcedImageUrls,
+          };
+
+          if (useRefinement) {
+            const refinementResult = await runRefinementLoop(
+              designInput,
+              brief,
+              output.format,
+              output.platform,
+              {
+                maxIterations: input.maxRefinementIterations ?? 3,
+                imageDetail: "low",
+              },
+            );
+            visualResults.push({
+              format: output.format,
+              platform: output.platform,
+              slides: refinementResult.design.slides,
+              designPath: refinementResult.design.designPath,
+              quality: refinementResult.quality,
+              iterationCount: refinementResult.iterations.length,
+            });
+          } else {
+            const result = await generateVisualDesign(
+              designInput,
+              output.format,
+              output.platform,
+            );
+            visualResults.push({
+              format: output.format,
+              platform: output.platform,
+              slides: result.slides,
+              designPath: result.designPath,
+            });
+          }
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err);
           errors.push({ format: output.format, platform: output.platform, error: msg });

@@ -204,6 +204,104 @@ export function pickGradient(kit: BrandKit, index: number): string {
 }
 
 /**
+ * Load a user's brand kit from the database.
+ * Falls back to DEFAULT_BRAND_KIT if no kit exists or DB is unavailable.
+ */
+export async function loadBrandKit(userId: string): Promise<BrandKit> {
+  try {
+    const { prisma } = await import("@/lib/db");
+    const record = await prisma.brandKit.findFirst({
+      where: { userId, isDefault: true },
+      orderBy: { updatedAt: "desc" },
+    });
+
+    if (!record) return DEFAULT_BRAND_KIT;
+
+    return mergeBrandKit({
+      name: record.name,
+      colors: {
+        ...DEFAULT_BRAND_KIT.colors,
+        primary: record.colorPrimary,
+        accent: record.colorAccent,
+        background: {
+          dark: record.colorBgDark,
+          light: record.colorBgLight,
+        },
+        text: {
+          ...DEFAULT_BRAND_KIT.colors.text,
+          primary: record.colorText,
+        },
+      },
+      typography: {
+        ...DEFAULT_BRAND_KIT.typography,
+        heading: { ...DEFAULT_BRAND_KIT.typography.heading, fontFamily: record.headingFont },
+        body: { ...DEFAULT_BRAND_KIT.typography.body, fontFamily: record.bodyFont },
+      },
+      assets: {
+        logoUrl: record.logoUrl ?? undefined,
+        logoSmallUrl: record.logomarkUrl ?? undefined,
+      },
+      layout: {
+        ...DEFAULT_BRAND_KIT.layout,
+        safeMargin: record.safeMargin,
+        cornerRadius: record.borderRadius,
+      },
+    });
+  } catch {
+    // DB unavailable — fall back to default
+    return DEFAULT_BRAND_KIT;
+  }
+}
+
+/**
+ * Save or update a brand kit in the database.
+ */
+export async function saveBrandKit(
+  userId: string,
+  kit: Partial<BrandKit> & { name?: string },
+): Promise<void> {
+  const { prisma } = await import("@/lib/db");
+  const merged = mergeBrandKit(kit);
+
+  await prisma.brandKit.upsert({
+    where: {
+      id: `${userId}-default`,
+    },
+    create: {
+      id: `${userId}-default`,
+      userId,
+      name: kit.name ?? merged.name,
+      isDefault: true,
+      colorPrimary: merged.colors.primary,
+      colorAccent: merged.colors.accent,
+      colorBgDark: merged.colors.background.dark,
+      colorBgLight: merged.colors.background.light,
+      colorText: merged.colors.text.primary,
+      headingFont: merged.typography.heading.fontFamily,
+      bodyFont: merged.typography.body.fontFamily,
+      safeMargin: merged.layout.safeMargin,
+      borderRadius: merged.layout.cornerRadius,
+      logoUrl: merged.assets.logoUrl,
+      logomarkUrl: merged.assets.logoSmallUrl,
+    },
+    update: {
+      name: kit.name ?? merged.name,
+      colorPrimary: merged.colors.primary,
+      colorAccent: merged.colors.accent,
+      colorBgDark: merged.colors.background.dark,
+      colorBgLight: merged.colors.background.light,
+      colorText: merged.colors.text.primary,
+      headingFont: merged.typography.heading.fontFamily,
+      bodyFont: merged.typography.body.fontFamily,
+      safeMargin: merged.layout.safeMargin,
+      borderRadius: merged.layout.cornerRadius,
+      logoUrl: merged.assets.logoUrl,
+      logomarkUrl: merged.assets.logoSmallUrl,
+    },
+  });
+}
+
+/**
  * Merge a partial brand kit override into the defaults (deep merge for nested objects).
  */
 export function mergeBrandKit(overrides: Partial<BrandKit>): BrandKit {

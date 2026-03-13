@@ -165,6 +165,23 @@ Topic type: ${tc.isExploration ? "탐색적 (실험적, 차별화된 디자인 �
     imageSection = `\nAvailable sourced images (${input.sourcedImageUrls.length} images from Unsplash/Spotify):\nThese real images are available for use in designs. Consider incorporating them into card news slides or as background elements.\n`;
   }
 
+  // Build StyleToken section (from reference image analysis)
+  let styleTokenSection = "";
+  if (input.styleToken) {
+    const st = input.styleToken;
+    styleTokenSection = `
+=== STYLE TOKEN (from reference image analysis) ===
+Use this as a strong visual guide — the design should echo these characteristics.
+Color palette: ${st.colors.palette.join(", ")}${st.colors.gradient ? ` (gradient: ${st.colors.gradient})` : ""}
+Typography mood: ${st.typography.mood} / ${st.typography.weight} / ${st.typography.style}
+Layout: density=${st.layout.density}, alignment=${st.layout.alignment}, whitespace=${st.layout.whitespace}
+Effects: ${st.effects.join(", ") || "none"}
+Mood keywords: ${st.moodKeywords.join(", ") || "none"}
+→ IMPORTANT: colorDirection.primary should come from the palette above. typographyMood should align with "${st.typography.mood}". layoutStyle should match density/alignment.
+=== END STYLE TOKEN ===
+`;
+  }
+
   const prompt = `You are a creative director for a Korean music/culture web magazine's design team.
 
 Analyze the content below and produce a design brief that will guide visual designers, motion designers, and data visualization agents.
@@ -174,7 +191,7 @@ Topic: ${input.topic}
 Content (first 1500 chars):
 ${contentSnippet}
 === END CONTENT ===
-${trendSection}${imageSection}${input.referenceImageUrl ? `\nReference image URL provided: ${input.referenceImageUrl}\n(Note: You cannot see this image directly. Infer style from the URL path/filename if possible, otherwise focus on content analysis.)\n` : ""}
+${trendSection}${styleTokenSection}${imageSection}${input.referenceImageUrl ? `\nReference image URL provided: ${input.referenceImageUrl}\n(Note: You cannot see this image directly. Infer style from the URL path/filename if possible, otherwise focus on content analysis.)\n` : ""}
 Your job:
 1. Classify the content type (album_review, artist_spotlight, trending, data_insight, list_ranking, general)
 2. Determine the overall mood/emotion of the content (in Korean, e.g. "에너지틱하면서 세련된")
@@ -252,6 +269,7 @@ Respond ONLY with the JSON object.`;
     layoutStyle: validateLayoutStyle(llmResult.layoutStyle) ?? "bold",
     typographyMood: validateTypographyMood(llmResult.typographyMood) ?? "sans_modern",
     outputs: filteredOutputs,
+    styleToken: input.styleToken,
   };
 
   return brief;

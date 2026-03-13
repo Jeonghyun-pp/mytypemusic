@@ -10,8 +10,10 @@ import CodeEditorTab from "./CodeEditorTab";
 import LayerPanel from "./LayerPanel";
 import DatabaseImportTab from "./DatabaseImportTab";
 import DataVizTab from "./DataVizTab";
+import ImageSearchPanel from "./ImageSearchPanel";
+import AiPolishPanel from "./AiPolishPanel";
 
-type Tab = "style" | "ai" | "ref" | "code" | "layers" | "db" | "dataviz";
+type Tab = "style" | "ai" | "ref" | "code" | "layers" | "db" | "dataviz" | "images" | "polish";
 
 interface ControlPanelProps {
   slide: SlideSpec;
@@ -37,6 +39,13 @@ interface ControlPanelProps {
   onColorUsed?: (color: string) => void;
   // Data viz
   onAddInfographicSlide: (templateId: TemplateId, title: string, bodyText: string, footerText: string) => void;
+  // Image search
+  onInsertImage?: (url: string, attribution: string) => void;
+  onSetBackground?: (url: string) => void;
+  // AI Polish
+  onRenderSlide?: () => Promise<string | null>;
+  onApplyRefinement?: (instructions: string) => void;
+  polishContext?: { contentType?: string; platform?: string; mood?: string; keyMessage?: string };
 }
 
 const s = {
@@ -114,6 +123,11 @@ export default function ControlPanel({
   recentColors,
   onColorUsed,
   onAddInfographicSlide,
+  onInsertImage,
+  onSetBackground,
+  onRenderSlide,
+  onApplyRefinement,
+  polishContext,
 }: ControlPanelProps) {
   const [tab, setTab] = useState<Tab>("style");
 
@@ -161,6 +175,20 @@ export default function ControlPanel({
           onClick={() => setTab("ref")}
         >
           참고
+        </button>
+        <button
+          type="button"
+          style={{ ...s.tab, ...(tab === "images" ? s.tabActive : {}) }}
+          onClick={() => setTab("images")}
+        >
+          이미지
+        </button>
+        <button
+          type="button"
+          style={{ ...s.tab, ...(tab === "polish" ? s.tabActive : {}) }}
+          onClick={() => setTab("polish")}
+        >
+          평가
         </button>
         <button
           type="button"
@@ -235,6 +263,19 @@ export default function ControlPanel({
             onSlideChange={onSlideChange}
             onFontMoodChange={onFontMoodChange}
             onSwitchToCodeTab={() => setTab("code")}
+          />
+        )}
+        {tab === "polish" && onRenderSlide && (
+          <AiPolishPanel
+            onRenderSlide={onRenderSlide}
+            onApplyRefinement={onApplyRefinement}
+            context={polishContext}
+          />
+        )}
+        {tab === "images" && onInsertImage && (
+          <ImageSearchPanel
+            onInsertImage={onInsertImage}
+            onSetBackground={onSetBackground}
           />
         )}
       </div>

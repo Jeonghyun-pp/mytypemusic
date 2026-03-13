@@ -260,6 +260,8 @@ export interface DesignEngineInput {
   researchPacket?: unknown;         // ResearchPacket from pipeline
   referenceImageUrl?: string;       // optional album art / moodboard
   persona?: unknown;                // WritingPersona for voice consistency
+  /** StyleToken extracted from reference image — influences Director's color/layout/typography choices */
+  styleToken?: StyleToken;
   /** Sourced images from Unsplash/Spotify to use in designs */
   sourcedImageUrls?: string[];
   /** Trend context for visual emphasis (e.g. trending topics get bolder styles) */

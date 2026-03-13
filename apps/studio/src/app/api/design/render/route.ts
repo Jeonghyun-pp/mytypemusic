@@ -6,6 +6,7 @@ import { LayerSchema } from "@/lib/studio/designEditor/layerTypes";
 import { renderSlideHtml, TEMPLATES } from "@/lib/studio/designEditor/templates";
 import { renderHtmlToDataUri, warmUp, isValidFontMood, MOOD_CSS_STACKS } from "@/lib/studio/designEditor/inlineRenderer";
 import { composeLayers } from "@agents/shared/layerCompositor";
+import { renderFigmaTemplate, figmaTemplateExists } from "@agents/shared/figmaSvgRenderer";
 import type { FontMood, SvgEffectOptions } from "@/lib/studio/designEditor/inlineRenderer";
 import type { SlideStyleOverrides } from "@/lib/studio/designEditor/types";
 import { z } from "zod";
@@ -145,6 +146,11 @@ export async function POST(req: Request) {
   const heroImageFitParsed = HeroImageFitSchema.safeParse(heroImageFitRaw);
   const heroImageFit = heroImageFitParsed.success ? heroImageFitParsed.data : "fill";
 
+  // ── Parse render scale (1x, 2x, 3x resolution) ──────
+  const scaleRaw = (body as Record<string, unknown>).scale;
+  const renderScale = typeof scaleRaw === "number" && scaleRaw >= 1 && scaleRaw <= 4
+    ? Math.round(scaleRaw) : 1;
+
   // ── Layer mode: composeLayers → SVG → PNG ────────────
   const layersRaw = (body as Record<string, unknown>).layers;
   if (Array.isArray(layersRaw) && layersRaw.length > 0) {
@@ -174,7 +180,7 @@ export async function POST(req: Request) {
         background: bgColor,
         fontMood: fontMood ?? "bold-display",
       });
-      const resvg = new Resvg(svg, { fitTo: { mode: "width" as const, value: w } });
+      const resvg = new Resvg(svg, { fitTo: { mode: "width" as const, value: w * renderScale } });
       const pngBuf = Buffer.from(resvg.render().asPng());
       const png = `data:image/png;base64,${pngBuf.toString("base64")}`;
       const elapsed = Math.round(performance.now() - start);
@@ -183,6 +189,60 @@ export async function POST(req: Request) {
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       return NextResponse.json({ error: "Layer render failed", details: msg }, { status: 500 });
+    }
+  }
+
+  // ── Figma SVG mode: template + placeholder replacement ──
+  const figmaTemplateRaw = (body as Record<string, unknown>).figmaTemplate;
+  if (figmaTemplateRaw && typeof figmaTemplateRaw === "object") {
+    const ft = figmaTemplateRaw as Record<string, unknown>;
+    const templateId = ft.templateId;
+    if (typeof templateId !== "string" || !templateId.trim()) {
+      return NextResponse.json(
+        { error: "figmaTemplate.templateId is required" },
+        { status: 400 },
+      );
+    }
+
+    if (!figmaTemplateExists(templateId)) {
+      return NextResponse.json(
+        { error: `Figma SVG template not found: ${templateId}` },
+        { status: 404 },
+      );
+    }
+
+    const texts = (ft.texts ?? {}) as Record<string, string>;
+    const images = (ft.images ?? {}) as Record<string, string>;
+    const colors = (ft.colors ?? {}) as Record<string, string>;
+
+    const figmaCacheKey = hashInput(
+      `figma:${templateId}:${JSON.stringify(texts)}:${JSON.stringify(images)}:${JSON.stringify(colors)}:${fontMood ?? ""}:${String(renderScale)}`,
+    );
+    const figmaCached = cacheGet(figmaCacheKey);
+    if (figmaCached) {
+      const elapsed = Math.round(performance.now() - start);
+      return NextResponse.json({ png: figmaCached, renderTimeMs: elapsed, cached: true });
+    }
+
+    try {
+      const w = canvasWidth ?? undefined;
+      const h = canvasHeight ?? undefined;
+      const pngBuf = await renderFigmaTemplate(
+        templateId,
+        { texts, images, colors },
+        { width: w, height: h, scale: renderScale },
+        fontMood ?? undefined,
+      );
+      const png = `data:image/png;base64,${pngBuf.toString("base64")}`;
+      const elapsed = Math.round(performance.now() - start);
+      cacheSet(figmaCacheKey, png);
+      return NextResponse.json({ png, renderTimeMs: elapsed });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      return NextResponse.json(
+        { error: "Figma template render failed", details: msg },
+        { status: 500 },
+      );
     }
   }
 

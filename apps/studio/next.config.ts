@@ -9,6 +9,12 @@ loadEnvConfig(monorepoRoot);
 
 const config: NextConfig = {
   outputFileTracingRoot: monorepoRoot,
+  outputFileTracingIncludes: {
+    "/api/design/render": [
+      "../../agents/shared/templates/figma/**/*.svg",
+      "../../agents/shared/templates/figma/_registry.json",
+    ],
+  },
   serverExternalPackages: ["@resvg/resvg-js", "satori", "@remotion/renderer", "@remotion/bundler", "@remotion/lambda", "jose"],
 
   // Resolve @agents/* for both webpack and turbopack
