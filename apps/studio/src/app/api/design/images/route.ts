@@ -1,9 +1,9 @@
 /**
- * Unified Image Search API — aggregates Unsplash, Pexels, and Spotify results.
+ * Unified Image Search API — aggregates Unsplash, Pexels, Spotify, and Google Web results.
  *
  * GET /api/design/images?q=sunset&source=all&page=1
  *
- * Sources: unsplash, pexels, spotify, all (default)
+ * Sources: unsplash, pexels, spotify, google, all (default)
  * Returns unified ImageSearchResult[] with attribution.
  */
 
@@ -14,7 +14,7 @@ import { fetchWithTimeout } from "@/lib/fetch-utils";
 
 export interface ImageSearchResult {
   id: string;
-  source: "unsplash" | "pexels" | "spotify";
+  source: "unsplash" | "pexels" | "spotify" | "google";
   previewUrl: string;
   fullUrl: string;
   sourceUrl: string;
@@ -198,6 +198,63 @@ async function searchSpotify(query: string): Promise<ImageSearchResult[]> {
   }
 }
 
+// ── Google Custom Search (Image) ────────────────────────
+
+async function searchGoogle(query: string, page: number): Promise<ImageSearchResult[]> {
+  const key = process.env.GOOGLE_CSE_API_KEY;
+  const cx = process.env.GOOGLE_CSE_ID;
+  if (!key || !cx) return [];
+
+  try {
+    const startIndex = (page - 1) * 10 + 1; // Google uses 1-based start index, max 10 per page
+    const params = new URLSearchParams({
+      q: query,
+      cx,
+      key,
+      searchType: "image",
+      num: "10",
+      start: String(startIndex),
+      safe: "active",
+      hl: "ko",
+    });
+    const res = await fetchWithTimeout(
+      `https://www.googleapis.com/customsearch/v1?${params.toString()}`,
+      { timeout: 8_000 },
+    );
+    if (!res.ok) return [];
+
+    const data = (await res.json()) as {
+      items?: Array<{
+        title: string;
+        link: string;           // full-size image URL
+        displayLink: string;    // hostname
+        image: {
+          contextLink: string;  // page where the image was found
+          thumbnailLink: string;
+          width: number;
+          height: number;
+          thumbnailWidth: number;
+          thumbnailHeight: number;
+        };
+      }>;
+    };
+
+    return (data.items ?? []).map((item, i) => ({
+      id: `google-${String(i)}-${encodeURIComponent(item.link).slice(0, 32)}`,
+      source: "google" as const,
+      previewUrl: item.image.thumbnailLink,
+      fullUrl: item.link,
+      sourceUrl: item.image.contextLink,
+      author: item.displayLink,
+      attribution: `${item.title} (${item.displayLink})`,
+      width: item.image.width,
+      height: item.image.height,
+    }));
+  } catch {
+    return [];
+  }
+}
+
 // ── Route handler ────────────────────────────────────────
 
 export async function GET(req: Request) {
@@ -215,6 +272,7 @@ export async function GET(req: Request) {
   if (source === "all" || source === "unsplash") searches.push(searchUnsplash(query, page));
   if (source === "all" || source === "pexels") searches.push(searchPexels(query, page));
   if (source === "all" || source === "spotify") searches.push(searchSpotify(query));
+  if (source === "all" || source === "google") searches.push(searchGoogle(query, page));
 
   const settled = await Promise.allSettled(searches);
   const results = settled

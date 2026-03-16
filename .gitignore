@@ -27,6 +27,9 @@ desktop.ini
 # Claude Code local settings
 .claude/settings.local.json
 
+# Reference docs (not part of app)
+skills_making.md
+
 # Outputs (런 결과물)
 outputs/runs/
 output/designs/
@@ -38,3 +41,6 @@ apps/studio/tmp/
 
 # Prisma generated client
 apps/studio/src/generated/
+
+# clerk configuration (can include secrets)
+/.clerk/

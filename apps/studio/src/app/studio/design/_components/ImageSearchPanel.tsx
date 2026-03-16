@@ -6,7 +6,7 @@ import { useState, useCallback, useRef } from "react";
 
 interface ImageResult {
   id: string;
-  source: "unsplash" | "pexels" | "spotify";
+  source: "unsplash" | "pexels" | "spotify" | "google";
   previewUrl: string;
   fullUrl: string;
   sourceUrl: string;
@@ -23,13 +23,14 @@ interface ImageSearchPanelProps {
   onSetBackground?: (url: string) => void;
 }
 
-type SourceFilter = "all" | "unsplash" | "pexels" | "spotify";
+type SourceFilter = "all" | "unsplash" | "pexels" | "spotify" | "google";
 
 const SOURCE_LABELS: Record<SourceFilter, string> = {
   all: "전체",
   unsplash: "Unsplash",
   pexels: "Pexels",
   spotify: "앨범 아트",
+  google: "웹 검색",
 };
 
 // ── Styles ───────────────────────────────────────────────
@@ -125,7 +126,7 @@ const s = {
     borderRadius: "3px",
     fontSize: "8px",
     fontWeight: 600 as const,
-    background: source === "unsplash" ? "#111" : source === "pexels" ? "#05A081" : "#1DB954",
+    background: source === "unsplash" ? "#111" : source === "pexels" ? "#05A081" : source === "spotify" ? "#1DB954" : "#4285F4",
     color: "#fff",
     marginRight: "4px",
   }),
@@ -306,7 +307,7 @@ export default function ImageSearchPanel({ onInsertImage, onSetBackground }: Ima
               {/* Attribution overlay */}
               <div style={s.overlay}>
                 <span style={s.sourceBadge(img.source)}>
-                  {img.source === "spotify" ? "Spotify" : img.source === "unsplash" ? "U" : "P"}
+                  {img.source === "spotify" ? "Spotify" : img.source === "unsplash" ? "U" : img.source === "pexels" ? "P" : "G"}
                 </span>
                 {img.author}
               </div>

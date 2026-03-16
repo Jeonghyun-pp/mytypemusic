@@ -72,6 +72,9 @@ export default function ProjectBrowser() {
       <div style={s.header}>
         <h2 style={s.title}>Design Projects</h2>
         <div style={s.headerActions}>
+          <button type="button" style={s.newBtn} onClick={() => router.push("/studio/design/generate")}>
+            AI 디자인 생성
+          </button>
           <button type="button" style={s.quickBtn} onClick={handleQuickDesign}>
             빠른 디자인
           </button>
