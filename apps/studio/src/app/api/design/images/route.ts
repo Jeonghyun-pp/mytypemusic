@@ -117,33 +117,45 @@ async function searchPexels(query: string, page: number): Promise<ImageSearchRes
 // ── Spotify ──────────────────────────────────────────────
 
 let spotifyToken: { token: string; expiresAt: number } | null = null;
+let spotifyTokenPromise: Promise<string | null> | null = null;
 
 async function getSpotifyToken(): Promise<string | null> {
   if (spotifyToken && Date.now() < spotifyToken.expiresAt - 60_000) {
     return spotifyToken.token;
   }
 
-  const id = process.env.SPOTIFY_CLIENT_ID;
-  const secret = process.env.SPOTIFY_CLIENT_SECRET;
-  if (!id || !secret) return null;
+  // Prevent concurrent token refresh requests (race condition fix)
+  if (spotifyTokenPromise) return spotifyTokenPromise;
+
+  spotifyTokenPromise = (async () => {
+    const id = process.env.SPOTIFY_CLIENT_ID;
+    const secret = process.env.SPOTIFY_CLIENT_SECRET;
+    if (!id || !secret) return null;
+
+    try {
+      const res = await fetchWithTimeout("https://accounts.spotify.com/api/token", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          Authorization: `Basic ${Buffer.from(`${id}:${secret}`).toString("base64")}`,
+        },
+        body: "grant_type=client_credentials",
+        timeout: 8_000,
+      });
+      if (!res.ok) return null;
+
+      const data = (await res.json()) as { access_token: string; expires_in: number };
+      spotifyToken = { token: data.access_token, expiresAt: Date.now() + data.expires_in * 1000 };
+      return spotifyToken.token;
+    } catch {
+      return null;
+    }
+  })();
 
   try {
-    const res = await fetchWithTimeout("https://accounts.spotify.com/api/token", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-        Authorization: `Basic ${Buffer.from(`${id}:${secret}`).toString("base64")}`,
-      },
-      body: "grant_type=client_credentials",
-      timeout: 8_000,
-    });
-    if (!res.ok) return null;
-
-    const data = (await res.json()) as { access_token: string; expires_in: number };
-    spotifyToken = { token: data.access_token, expiresAt: Date.now() + data.expires_in * 1000 };
-    return spotifyToken.token;
-  } catch {
-    return null;
+    return await spotifyTokenPromise;
+  } finally {
+    spotifyTokenPromise = null;
   }
 }
 

@@ -217,34 +217,48 @@ export async function loadBrandKit(userId: string): Promise<BrandKit> {
 
     if (!record) return DEFAULT_BRAND_KIT;
 
+    // Parse extended settings stored as JSON (secondary color, gradients, text colors, etc.)
+    let extended: Partial<BrandKit> = {};
+    if (record.extendedJson) {
+      try {
+        extended = JSON.parse(record.extendedJson) as Partial<BrandKit>;
+      } catch { /* ignore malformed JSON */ }
+    }
+
     return mergeBrandKit({
       name: record.name,
       colors: {
         ...DEFAULT_BRAND_KIT.colors,
+        ...extended.colors,
         primary: record.colorPrimary,
         accent: record.colorAccent,
         background: {
           dark: record.colorBgDark,
           light: record.colorBgLight,
+          ...extended.colors?.background,
         },
         text: {
           ...DEFAULT_BRAND_KIT.colors.text,
           primary: record.colorText,
+          ...extended.colors?.text,
         },
       },
       typography: {
         ...DEFAULT_BRAND_KIT.typography,
-        heading: { ...DEFAULT_BRAND_KIT.typography.heading, fontFamily: record.headingFont },
-        body: { ...DEFAULT_BRAND_KIT.typography.body, fontFamily: record.bodyFont },
+        ...extended.typography,
+        heading: { ...DEFAULT_BRAND_KIT.typography.heading, fontFamily: record.headingFont, ...extended.typography?.heading },
+        body: { ...DEFAULT_BRAND_KIT.typography.body, fontFamily: record.bodyFont, ...extended.typography?.body },
       },
       assets: {
         logoUrl: record.logoUrl ?? undefined,
         logoSmallUrl: record.logomarkUrl ?? undefined,
+        ...extended.assets,
       },
       layout: {
         ...DEFAULT_BRAND_KIT.layout,
         safeMargin: record.safeMargin,
         cornerRadius: record.borderRadius,
+        ...extended.layout,
       },
     });
   } catch {
@@ -263,41 +277,47 @@ export async function saveBrandKit(
   const { prisma } = await import("@/lib/db");
   const merged = mergeBrandKit(kit);
 
+  // Store fields not covered by dedicated columns in extendedJson
+  const extendedJson = JSON.stringify({
+    colors: {
+      secondary: merged.colors.secondary,
+      gradients: merged.colors.gradients,
+      text: {
+        secondary: merged.colors.text.secondary,
+        onDark: merged.colors.text.onDark,
+        onLight: merged.colors.text.onLight,
+      },
+    },
+    typography: {
+      accent: merged.typography.accent,
+      sizes: merged.typography.sizes,
+      heading: { weights: merged.typography.heading.weights, fontMood: merged.typography.heading.fontMood },
+      body: { weights: merged.typography.body.weights, fontMood: merged.typography.body.fontMood },
+    },
+    assets: { watermarkUrl: merged.assets.watermarkUrl },
+    layout: { slideGap: merged.layout.slideGap, maxTextPerSlide: merged.layout.maxTextPerSlide, maxTitleLength: merged.layout.maxTitleLength },
+  });
+
+  const data = {
+    name: kit.name ?? merged.name,
+    colorPrimary: merged.colors.primary,
+    colorAccent: merged.colors.accent,
+    colorBgDark: merged.colors.background.dark,
+    colorBgLight: merged.colors.background.light,
+    colorText: merged.colors.text.primary,
+    headingFont: merged.typography.heading.fontFamily,
+    bodyFont: merged.typography.body.fontFamily,
+    safeMargin: merged.layout.safeMargin,
+    borderRadius: merged.layout.cornerRadius,
+    logoUrl: merged.assets.logoUrl,
+    logomarkUrl: merged.assets.logoSmallUrl,
+    extendedJson,
+  };
+
   await prisma.brandKit.upsert({
-    where: {
-      id: `${userId}-default`,
-    },
-    create: {
-      id: `${userId}-default`,
-      userId,
-      name: kit.name ?? merged.name,
-      isDefault: true,
-      colorPrimary: merged.colors.primary,
-      colorAccent: merged.colors.accent,
-      colorBgDark: merged.colors.background.dark,
-      colorBgLight: merged.colors.background.light,
-      colorText: merged.colors.text.primary,
-      headingFont: merged.typography.heading.fontFamily,
-      bodyFont: merged.typography.body.fontFamily,
-      safeMargin: merged.layout.safeMargin,
-      borderRadius: merged.layout.cornerRadius,
-      logoUrl: merged.assets.logoUrl,
-      logomarkUrl: merged.assets.logoSmallUrl,
-    },
-    update: {
-      name: kit.name ?? merged.name,
-      colorPrimary: merged.colors.primary,
-      colorAccent: merged.colors.accent,
-      colorBgDark: merged.colors.background.dark,
-      colorBgLight: merged.colors.background.light,
-      colorText: merged.colors.text.primary,
-      headingFont: merged.typography.heading.fontFamily,
-      bodyFont: merged.typography.body.fontFamily,
-      safeMargin: merged.layout.safeMargin,
-      borderRadius: merged.layout.cornerRadius,
-      logoUrl: merged.assets.logoUrl,
-      logomarkUrl: merged.assets.logoSmallUrl,
-    },
+    where: { id: `${userId}-default` },
+    create: { id: `${userId}-default`, userId, isDefault: true, ...data },
+    update: data,
   });
 }
 

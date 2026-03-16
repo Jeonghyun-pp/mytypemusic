@@ -94,7 +94,9 @@ export function saveQualityRecord(record: DesignQualityRecord): void {
         generationTimeMs: record.generationTimeMs,
         costUsd: record.costUsd,
       },
-    }).catch(() => {});
+    }).catch((err) => {
+      console.warn("[quality-store] DB write failed:", (err as Error).message);
+    });
   }
 }
 

@@ -39,8 +39,7 @@ const EXTRA_SUPPORTED = new Set([
   "margin-top", "margin-right", "margin-bottom", "margin-left",
   "padding-top", "padding-right", "padding-bottom", "padding-left",
   "min-width", "min-height", "max-width", "max-height",
-  "box-shadow", "text-shadow",
-  "object-fit",
+  "overflow", "opacity",
 ]);
 
 function isSupportedProperty(kebabProp: string): boolean {
