@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1080" height="1920" viewBox="0 0 1080 1920">
+  <defs>
+    <linearGradient id="bg-grad" x1="0.5" y1="0" x2="0.5" y2="1">
+      <stop offset="0" stop-color="#0F0F1A"/>
+      <stop offset="0.5" stop-color="#1A1A2E"/>
+      <stop offset="1" stop-color="#2D1B69"/>
+    </linearGradient>
+    <linearGradient id="scrim" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0F0F1A" stop-opacity="0"/>
+      <stop offset="0.4" stop-color="#0F0F1A" stop-opacity="0.3"/>
+      <stop offset="1" stop-color="#2D1B69" stop-opacity="0.95"/>
+    </linearGradient>
+    <filter id="frost-scrim" x="0" y="0" width="100%" height="100%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="2"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1080" height="1920" fill="url(#bg-grad)"/>
+
+  <!-- Hero image -->
+  <image id="{{hero-image}}" href="" x="0" y="0" width="1080" height="1400" preserveAspectRatio="xMidYMid slice"/>
+
+  <!-- Gradient scrim -->
+  <rect x="0" y="700" width="1080" height="1220" fill="url(#scrim)"/>
+
+  <!-- Accent bar -->
+  <rect id="{{accent-color}}" x="60" y="1440" width="40" height="4" rx="2" fill="#E17055"/>
+
+  <!-- Footer as category label -->
+  <text id="{{footer}}" x="60" y="1480" font-family="Pretendard, sans-serif" font-size="16" font-weight="700" fill="#E17055" letter-spacing="2" data-max-width="960" data-max-lines="1">
+    WEB MAGAZINE
+  </text>
+
+  <!-- Title -->
+  <text id="{{title}}" x="60" y="1570" font-family="Pretendard, sans-serif" font-size="56" font-weight="800" fill="#FFFFFF" data-max-width="960" data-max-lines="3" data-line-height="1.25">
+    제목을 입력하세요
+  </text>
+
+  <!-- Body -->
+  <text id="{{body}}" x="60" y="1740" font-family="Pretendard, sans-serif" font-size="24" font-weight="400" fill="rgba(255,255,255,0.65)" data-max-width="960" data-max-lines="3" data-line-height="1.5">
+    본문 내용
+  </text>
+
+  <!-- Watermark -->
+  <text x="60" y="1880" font-family="Pretendard, sans-serif" font-size="12" font-weight="400" fill="rgba(255,255,255,0.4)">
+    Web Magazine
+  </text>
+</svg>

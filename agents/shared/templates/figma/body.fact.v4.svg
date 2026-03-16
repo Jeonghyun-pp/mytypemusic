@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1080" height="1350" viewBox="0 0 1080 1350">
+  <!-- Light editorial background -->
+  <rect width="1080" height="1350" fill="#FAFAF8"/>
+
+  <!-- Top divider line -->
+  <rect x="75" y="100" width="930" height="2" fill="rgba(26,26,26,0.12)"/>
+
+  <!-- Headline (small, muted) -->
+  <text id="{{title}}" x="75" y="190" font-family="Noto Serif KR, Pretendard, serif" font-size="18" font-weight="500" fill="rgba(26,26,26,0.55)" data-max-width="930" data-max-lines="1" data-line-height="1.3">
+    헤드라인
+  </text>
+
+  <!-- Accent bar (decorative) -->
+  <rect id="{{accent-color}}" x="75" y="220" width="30" height="3" rx="1.5" fill="#E17055"/>
+
+  <!-- Body text (serif, editorial) -->
+  <text id="{{body}}" x="75" y="470" font-family="Noto Serif KR, Pretendard, serif" font-size="36" font-weight="600" fill="#1A1A1A" data-max-width="930" data-max-lines="8" data-line-height="1.5">
+    본문 내용이 여기에 들어갑니다
+  </text>
+
+  <!-- Footer -->
+  <text id="{{footer}}" x="75" y="1310" font-family="Noto Serif KR, Pretendard, serif" font-size="14" font-weight="400" fill="rgba(26,26,26,0.5)" data-max-width="930" data-max-lines="1">
+    Web Magazine
+  </text>
+</svg>

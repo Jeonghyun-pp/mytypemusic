@@ -15,6 +15,7 @@ import type {
   DesignBrief,
   DesignFormat,
   DesignPlatform,
+  FigmaTemplateSpec,
   SlideDesign,
   VisualDesignResult,
 } from "./types";
@@ -23,6 +24,20 @@ import { DEFAULT_BRAND_KIT, getBrandFontStack, pickGradient } from "./brand-kit"
 import type { BrandKit } from "./brand-kit";
 import { SATORI_SUPPORTED_CSS, SATORI_UNSUPPORTED_CSS } from "./fonts";
 import { sanitizeForSatori } from "./satori-sanitizer";
+
+// Figma SVG template check — lazy import to avoid circular deps
+let _figmaTemplateExists: ((id: string) => boolean) | null = null;
+async function checkFigmaTemplate(templateId: string): Promise<boolean> {
+  if (!_figmaTemplateExists) {
+    try {
+      const mod = await import("@agents/shared/figmaSvgRenderer");
+      _figmaTemplateExists = mod.figmaTemplateExists;
+    } catch {
+      _figmaTemplateExists = () => false;
+    }
+  }
+  return _figmaTemplateExists(templateId);
+}
 
 // Template renderer — resolves templateId + renderSpec → HTML string
 // Uses dynamic import to avoid circular dependency with agents/ package
@@ -134,14 +149,33 @@ export async function designWithTemplate(
       canvasHeight: height,
     };
 
-    // Resolve template to Satori-compatible HTML
-    const html = await resolveTemplateToHtml(templateId, renderSpec);
+    // Prefer Figma SVG template when available, fall back to Satori HTML
+    const hasFigma = await checkFigmaTemplate(templateId);
+    let figmaTemplate: FigmaTemplateSpec | undefined;
+    let html = "";
+
+    if (hasFigma) {
+      figmaTemplate = {
+        templateId,
+        texts: {
+          title: content.title,
+          body: content.body,
+          footer: content.footer ?? "Web Magazine",
+        },
+        images: bgImageUrl ? { "hero-image": bgImageUrl } : {},
+        colors: styleOverrides.accentColor ? { "accent-color": styleOverrides.accentColor } : {},
+      };
+    } else {
+      html = await resolveTemplateToHtml(templateId, renderSpec);
+    }
+
     slides.push({
       index: i,
       jsxCode: html,
       width,
       height,
       platform,
+      figmaTemplate,
       templateId,
       renderSpec: { ...renderSpec },
     });
@@ -177,7 +211,25 @@ async function designSnsWithTemplate(
     canvasHeight: height,
   };
 
-  const html = await resolveTemplateToHtml(templateId, renderSpec);
+  const hasFigma = await checkFigmaTemplate(templateId);
+  let figmaTemplate: FigmaTemplateSpec | undefined;
+  let html = "";
+
+  if (hasFigma) {
+    const bgImageUrl = input.sourcedImageUrls?.[0];
+    figmaTemplate = {
+      templateId,
+      texts: {
+        title: content.title,
+        body: content.body,
+        footer: content.footer ?? "Web Magazine",
+      },
+      images: bgImageUrl ? { "hero-image": bgImageUrl } : {},
+      colors: styleOverrides?.accentColor ? { "accent-color": styleOverrides.accentColor } : {},
+    };
+  } else {
+    html = await resolveTemplateToHtml(templateId, renderSpec);
+  }
 
   return {
     slides: [{
@@ -186,6 +238,7 @@ async function designSnsWithTemplate(
       width,
       height,
       platform,
+      figmaTemplate,
       templateId,
       renderSpec: { ...renderSpec },
     }],

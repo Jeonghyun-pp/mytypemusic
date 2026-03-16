@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1080" height="1350" viewBox="0 0 1080 1350">
+  <defs>
+    <radialGradient id="bg-accent" cx="0.8" cy="0.3" r="0.8">
+      <stop offset="0" stop-color="#6C5CE7" stop-opacity="0.06"/>
+      <stop offset="1" stop-color="#6C5CE7" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Light background -->
+  <rect width="1080" height="1350" fill="#F8F9FA"/>
+  <rect width="1080" height="1350" fill="url(#bg-accent)"/>
+
+  <!-- Accent bar -->
+  <rect id="{{accent-color}}" x="80" y="80" width="40" height="4" rx="2" fill="#6C5CE7"/>
+
+  <!-- Footer as category label (top) -->
+  <text id="{{footer}}" x="80" y="120" font-family="Pretendard, sans-serif" font-size="14" font-weight="600" fill="#6C5CE7" letter-spacing="2" data-max-width="920" data-max-lines="1">
+    WEB MAGAZINE
+  </text>
+
+  <!-- Title — large, centered vertically -->
+  <text id="{{title}}" x="80" y="500" font-family="Pretendard, sans-serif" font-size="64" font-weight="800" fill="#1A1A1A" data-max-width="920" data-max-lines="3" data-line-height="1.25">
+    제목을 입력하세요
+  </text>
+
+  <!-- Body -->
+  <text id="{{body}}" x="80" y="780" font-family="Pretendard, sans-serif" font-size="24" font-weight="400" fill="rgba(26,26,26,0.65)" data-max-width="820" data-max-lines="4" data-line-height="1.6">
+    본문 내용이 여기에 들어갑니다
+  </text>
+</svg>

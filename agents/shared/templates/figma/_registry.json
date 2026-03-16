@@ -107,7 +107,7 @@
   "sns.story.v1": {
     "width": 1080,
     "height": 1920,
-    "placeholders": ["title", "body", "hero-image", "accent-color"],
+    "placeholders": ["title", "body", "footer", "hero-image", "accent-color"],
     "kind": "sns",
     "description": "Instagram Story (9:16)"
   },
@@ -137,27 +137,31 @@
     "height": 1350,
     "placeholders": ["title", "body", "footer", "accent-color"],
     "kind": "infographic",
-    "description": "Bar chart infographic"
+    "description": "Bar chart infographic",
+    "renderer": "satori"
   },
   "infographic.donut.v1": {
     "width": 1080,
     "height": 1350,
     "placeholders": ["title", "body", "footer", "accent-color"],
     "kind": "infographic",
-    "description": "Donut/pie chart infographic"
+    "description": "Donut/pie chart infographic",
+    "renderer": "satori"
   },
   "infographic.comparison.v1": {
     "width": 1080,
     "height": 1350,
     "placeholders": ["title", "body", "footer", "accent-color"],
     "kind": "infographic",
-    "description": "Comparison layout infographic"
+    "description": "Comparison layout infographic",
+    "renderer": "satori"
   },
   "infographic.timeline.v1": {
     "width": 1080,
     "height": 1350,
     "placeholders": ["title", "body", "footer", "accent-color"],
     "kind": "infographic",
-    "description": "Timeline infographic"
+    "description": "Timeline infographic",
+    "renderer": "satori"
   }
 }

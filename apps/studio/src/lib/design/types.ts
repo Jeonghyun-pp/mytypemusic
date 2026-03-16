@@ -162,12 +162,22 @@ export interface DesignEditRequest {
 // ── Visual Designer output ──────────────────────────────
 
 /** A single rendered slide (card news, SNS image, etc.) */
+export interface FigmaTemplateSpec {
+  templateId: string;
+  texts: Record<string, string>;
+  images: Record<string, string>;
+  colors: Record<string, string>;
+}
+
 export interface SlideDesign {
   index: number;
   jsxCode: string;           // Satori-compatible JSX (stringified)
   width: number;
   height: number;
   platform: DesignPlatform;
+
+  // Figma SVG template (preferred over jsxCode when present)
+  figmaTemplate?: FigmaTemplateSpec;
 
   // Edit support metadata (preserved for refinement loop)
   templateId?: string;                    // template path only
